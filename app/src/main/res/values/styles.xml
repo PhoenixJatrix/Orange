@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name = "OrangeTheme" parent = "Base.AppTheme.OrangeTheme"/>
+    <style name="Base.AppTheme.OrangeTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/colorOrange</item>
+        <item name="colorPrimaryDark">@color/colorOrange</item>
+        <item name="colorAccent">@color/colorAccentOrange</item>
+        <item name="colorOnBackground">@color/colorOrange</item>
+        <item name="android:backgroundTint">@color/colorOrangeDarker</item>
+        <item name="android:textColor">@color/colorDark</item>
+        <item name="iconTint">@color/colorDark</item>
+        <item name="backgroundTint">@color/colorDark</item>
+
+    </style>
+
+    <style name = "DarkTheme" parent = "Base.AppTheme.DarkTheme"/>
+    <style name="Base.AppTheme.DarkTheme" parent="Theme.AppCompat.Light.DarkActionBar">
+        <item name="colorPrimary">@color/colorDark</item>
+        <item name="colorPrimaryDark">@color/colorDarkDark</item>
+        <item name="colorAccent">@color/colorAccentDark</item>
+        <item name="colorOnBackground">@color/colorDark</item>
+        <item name="android:textColor">@color/colorOrangeDark</item>
+        <item name="iconTint">@color/colorOrangeDark</item>
+        <item name="buttonIconTint">@color/orange</item>
+    </style>
+
+    <style name = "OrangeThemePlayer" parent = "Base.AppTheme.OrangeThemePlayer"/>
+    <style name="Base.AppTheme.OrangeThemePlayer" parent="Theme.AppCompat.Light.NoActionBar"/>
+
+    <style name = "DarkThemePlayer" parent = "Base.AppTheme.DarkThemePlayer"/>
+    <style name="Base.AppTheme.DarkThemePlayer" parent="Theme.AppCompat.Light.NoActionBar">
+        <item name="colorPrimary">@color/colorDark</item>
+        <item name="colorPrimaryDark">@color/colorDarkDark</item>
+        <item name="colorAccent">@color/colorAccentDark</item>
+        <item name="android:textColor">@color/colorDark</item>
+        <item name="android:progressTint">@color/colorDark</item>
+    </style>
+
+    <style name="SpinnerDropDown" parent="Base.AppTheme.SpinnerDropDown"/>
+    <style name="Base.AppTheme.SpinnerDropDown" parent="Widget.AppCompat.TextView.SpinnerItem">
+        <item name="android:textSize">100sp</item>
+        <item name="background">@color/colorDarkDark</item>
+        <item name="android:textColor">@color/orange</item>
+    </style>
+
+</resources>

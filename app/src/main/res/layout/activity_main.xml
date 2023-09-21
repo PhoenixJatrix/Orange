@@ -1,0 +1,573 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    tools:context="com.nullinnix.orange.MainActivity"
+    android:background="@color/black"
+    android:theme="@style/Base.AppTheme.DarkTheme"
+    android:id="@+id/mainLayout">
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:id="@+id/tools"
+        android:paddingBottom="5dp">
+
+        <androidx.appcompat.widget.AppCompatSpinner
+            android:layout_width="50dp"
+            android:layout_height="50dp"
+            android:id="@+id/playlistsSpinner"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:contentDescription="Playlists"
+            android:spinnerMode="dropdown"
+            android:backgroundTint="@color/colorOrange"
+            android:background="@drawable/ic_playlist_expand"
+            />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="30dp"
+            android:layout_height="30dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:background="@drawable/ic_remove_from_playlist"
+            android:backgroundTint="@color/orange"
+            android:id="@+id/remove_from_playlist"
+            android:contentDescription="Remove From Playlist"
+            android:visibility="invisible"
+            android:fontFamily="@font/rem_normal"/>
+
+        <androidx.appcompat.widget.AppCompatTextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:text="All"
+            android:textSize="22sp"
+            android:textStyle="bold"
+            android:id="@+id/currentPlaylist"
+            android:textColor="@color/orange"
+            />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:background="@drawable/ic_settings"
+            android:id="@+id/settings"
+            android:contentDescription="Settings"
+            android:backgroundTint="@color/colorOrange"
+            />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/settings"
+            android:background="@drawable/ic_search"
+            android:id="@+id/search"
+            android:contentDescription="Search"
+            android:backgroundTint="@color/colorOrange"
+            android:layout_marginEnd="5dp"
+
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.recyclerview.widget.RecyclerView
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:id="@+id/recyclerView"
+        android:clipToPadding="true"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/tools"
+        android:paddingBottom="110dp"
+        android:contentDescription="Songs list recycler view"
+        />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:id="@+id/playlistRecyclerViewLayout"
+        android:visibility="invisible"
+        android:contentDescription="Songs Recycler View">
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:background="@color/darkOrange">
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                android:text="PLAYLISTS"
+                app:layout_constraintBottom_toTopOf="@id/createPlaylistButton"
+                android:id="@+id/playlistLabel"
+                android:textSize="20sp"
+                android:fontFamily="@font/rem_normal"
+                />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="wrap_content"
+                android:layout_height="50dp"
+                app:layout_constraintBottom_toTopOf="@id/playlistRecyclerView"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                android:id="@+id/createPlaylistButton"
+                android:contentDescription="Create Playlist"
+                android:drawableEnd="@drawable/small_create_playlist"
+                android:drawableTint="@color/orange"
+                android:textAlignment="center"
+                android:text="Create New Playlist"
+                android:fontFamily="@font/rem_normal"
+                android:textColor="@color/orange"
+                android:textSize="25sp"
+                android:textStyle="bold"
+                />
+
+            <androidx.recyclerview.widget.RecyclerView
+                android:layout_width="match_parent"
+                android:layout_height="0dp"
+                app:layout_constraintTop_toBottomOf="@id/createPlaylistButton"
+                app:layout_constraintStart_toStartOf="parent"
+                android:id="@+id/playlistRecyclerView"
+                android:clipToPadding="true"
+                android:paddingBottom="110dp"
+                android:contentDescription="Playlist Recycler View"
+                />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="55dp"
+        app:layout_constraintBottom_toBottomOf="parent"
+        android:id="@+id/miniPlayer"
+        android:visibility="gone"
+        >
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            >
+
+            <ImageView
+                android:layout_width="500dp"
+                android:layout_height="500dp"
+                android:id="@+id/miniPlayerAlbumCover"
+                android:background="@drawable/ic_music_icon_alt"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:contentDescription="miniPlayer album cover"
+                />
+
+            <ProgressBar
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:layout_constraintTop_toTopOf="parent"
+                style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+                android:id="@+id/miniPlayerProgress"
+                app:layout_constraintStart_toStartOf="parent"
+                android:background="@color/transparent"
+                android:progressTint="@color/colorDarkDark"
+                />
+
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:background="@drawable/ic_circle"
+                android:backgroundTint="@color/translucent"
+                />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="@id/playPauseMiniPlayer"
+                android:background="@drawable/ic_skip_previous_icon"
+                />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="35dp"
+                android:layout_height="35dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="@id/playPauseMiniPlayer"
+                android:background="@drawable/ic_skip_next_icon"
+                />
+
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="@id/playPauseMiniPlayer"
+                android:background="@drawable/ic_skip_previous_icon"
+                android:id="@+id/skipPreviousMiniPlayer"
+                android:contentDescription="skipPrevious"
+                android:backgroundTint="@color/darkOrange"
+                />
+
+
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="@id/playPauseMiniPlayer"
+                android:background="@drawable/ic_skip_next_icon"
+                android:id="@+id/skipNextMiniPlayer"
+                android:contentDescription="skipNext"
+                android:backgroundTint="@color/darkOrange"
+                />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:layout_width="30dp"
+                android:layout_height="30dp"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:background="@drawable/ic_playing_icon"
+                android:id="@+id/playPauseMiniPlayer"
+                android:contentDescription="playPause"
+                android:backgroundTint="@color/darkOrange"
+                />
+
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+
+    </androidx.cardview.widget.CardView>
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/no_songs_found_text"
+        android:textSize="20sp"
+        android:background="@color/colorDark"
+        android:id="@+id/noSongsFoundMessage"
+        android:textAlignment="center"
+        android:textColor="@color/white"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/addPlaylistLayout"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:backgroundTint="@color/colorOrange"
+        android:visibility="invisible"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintHorizontal_bias="0.0"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintVertical_bias="0.0"
+        >
+
+        <androidx.appcompat.widget.LinearLayoutCompat
+            android:layout_width="400dp"
+            android:layout_height="150dp"
+            android:background="@color/translucent"
+            android:clickable="true"
+            android:gravity="center"
+            android:orientation="vertical"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            android:focusable="true">
+
+            <androidx.appcompat.widget.AppCompatEditText
+                android:id="@+id/playlistNameEditText"
+                android:layout_width="match_parent"
+                android:layout_height="50dp"
+                android:background="@color/colorOrange"
+                android:hint="Playlist Name..."
+                android:textSize="20sp"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toTopOf="parent" />
+
+            <androidx.appcompat.widget.AppCompatButton
+                android:id="@+id/savePlaylistButton"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:backgroundTint="@color/orange"
+                android:contentDescription="Add PlayList"
+                android:text="save"
+                android:textColor="@color/colorDark"
+                app:layout_constraintEnd_toEndOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintTop_toBottomOf="@id/playlistNameEditText" />
+
+        </androidx.appcompat.widget.LinearLayoutCompat>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.appcompat.widget.LinearLayoutCompat
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:id="@+id/multiSelectLayout"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:visibility="invisible"
+        android:orientation="horizontal"
+        android:gravity="center"
+        >
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select All"
+            android:id="@+id/selectAll"
+            android:background="@color/transparent"
+            android:textColor="@color/orange"
+            android:textSize="11sp"
+            android:layout_margin="5dp"
+            android:fontFamily="@font/rem_normal"
+            android:minLines="2"
+            android:contentDescription="Select all songs"
+            />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Deselect All"
+            android:id="@+id/deselectAll"
+            android:background="@color/transparent"
+            android:textColor="@color/orange"
+            android:textSize="11sp"
+            android:layout_margin="5dp"
+            android:fontFamily="@font/rem_normal"
+            android:maxLines="2"
+            android:minLines="2"
+            android:contentDescription="Deselect"
+            />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Select Interval"
+            android:id="@+id/selectInterval"
+            android:background="@color/transparent"
+            android:textColor="@color/orange"
+            android:textSize="11sp"
+            android:layout_margin="5dp"
+            android:fontFamily="@font/rem_normal"
+            android:maxLines="2"
+            android:minLines="2"
+            android:contentDescription="Select interval"
+            />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Delete Selected"
+            android:id="@+id/deleteSelected"
+            android:background="@color/transparent"
+            android:textColor="@color/orange"
+            android:textSize="11sp"
+            android:layout_margin="5dp"
+            android:fontFamily="@font/rem_normal"
+            android:maxLines="2"
+            android:minLines="2"
+            android:contentDescription="Delete selected songs"
+            />
+    </androidx.appcompat.widget.LinearLayoutCompat>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="1000dp"
+        app:layout_constraintTop_toBottomOf="@id/tools"
+        android:id="@+id/searchLayout"
+        android:visibility="invisible"
+        />
+
+    <EditText
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        android:id="@+id/searchEditText"
+        android:inputType="text"
+        android:hint="Song/Artist name to search..."
+        android:autofillHints="name"
+        android:textColor="@color/orange"
+        android:background="@color/white"
+        android:textSize="23sp"
+        android:fontFamily="@font/rem_normal"
+        android:visibility="invisible"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintBottom_toBottomOf="@id/cancelSearch"
+        android:paddingBottom="10dp"
+        />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:layout_width="25dp"
+        android:layout_height="25dp"
+        app:layout_constraintTop_toTopOf="@id/tools"
+        app:layout_constraintBottom_toBottomOf="@id/tools"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:background="@drawable/ic_create_playlist"
+        android:id="@+id/playlistsManager"
+        android:contentDescription="Add PlayList"
+        android:backgroundTint="@color/colorOrange"
+        android:visibility="invisible" />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        app:layout_constraintTop_toTopOf="@id/tools"
+        app:layout_constraintBottom_toBottomOf="@id/tools"
+        app:layout_constraintStart_toStartOf="parent"
+        android:background="@drawable/baseline_cancel_24"
+        android:id="@+id/cancelSearch"
+        android:contentDescription="Cancel Search"
+        android:backgroundTint="@color/colorOrange"
+        android:visibility="invisible"/>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/loadingScreenLayout"
+        android:background="@color/gray"
+        android:visibility="invisible"
+        >
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintBottom_toTopOf="@id/loading"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:text="Scanning for Music..."
+            android:gravity="center"
+            android:textSize="30sp"
+            android:fontFamily="@font/rem_normal"
+            android:textStyle="bold"
+            />
+
+        <ProgressBar
+            android:layout_width="100dp"
+            android:layout_height="100dp"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:id="@+id/loading"
+            android:progressTint="@color/orange"
+           />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@color/translucent"
+        android:id="@+id/tipLayout"
+        android:visibility="gone">
+
+        <androidx.cardview.widget.CardView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:backgroundTint="@color/colorDark"
+            app:cardCornerRadius="150dp"
+            android:visibility="visible"
+            >
+
+            <androidx.constraintlayout.widget.ConstraintLayout
+                android:layout_width="match_parent"
+                android:layout_height="match_parent">
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintBottom_toTopOf="@id/tipTextView"
+                    android:text="Tip:"
+                    android:textSize="22sp"
+                    android:textColor="@color/orange"
+                    android:fontFamily="@font/rem_normal"
+                    android:textAlignment="center"
+                    />
+
+                <TextView
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    app:layout_constraintTop_toTopOf="parent"
+                    app:layout_constraintBottom_toBottomOf="parent"
+                    android:text="@string/lorem"
+                    android:textSize="20sp"
+                    android:id="@+id/tipTextView"
+                    android:textColor="@color/orange"
+                    android:fontFamily="@font/rem_normal"
+                    android:backgroundTint="@color/translucent"
+                    android:padding="20dp"
+                    android:textAlignment="center"
+                    />
+
+                <Button
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:drawableEnd="@drawable/ic_notification"
+                    android:backgroundTint="@color/colorOrangeDark"
+                    app:layout_constraintTop_toBottomOf="@id/tipTextView"
+                    app:layout_constraintStart_toStartOf="parent"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    android:id="@+id/clearTipButton"
+                    android:text="Okay!"
+                    android:textColor="@color/colorDark"
+                    android:fontFamily="@font/rem_normal"
+                    android:drawableTint="@color/colorDark"
+                    android:textStyle="bold"/>
+
+            </androidx.constraintlayout.widget.ConstraintLayout>
+
+        </androidx.cardview.widget.CardView>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+
+</androidx.constraintlayout.widget.ConstraintLayout>

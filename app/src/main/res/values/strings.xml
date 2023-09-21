@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">Orange</string>
+    <string name="title_activity_settings">SettingsActivity</string>
+    <string name="no_songs_found_text"> <font color="#FFE05D29">Orange </font>did not find any Songs :(\n Restart the app and make sure <font color="#FFE05D29">Orange</font> has permission to access your device\'s audio and Scan again</string>
+    <string name="scan_for_music"> <font color="#FFFFFF">Click to let </font><font color="#FFE05D29">Orange</font><font color="#FFFFFF"> scan for Music</font> </string>
+    <string name="scanning_for_music"><font color="#FFE05D29">"Orange"</font> <font color="#FFFFFF">"is Scanning for Music. It'll take a second. Or 2. Maybe 10 :)"</font> </string>
+    <string name="lorem">Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum</string>
+    <string name="playlists">Saved Playlists</string>
+    <string-array name="playlistsArray">
+        <item>PlayLists</item>
+
+    </string-array>
+
+</resources>

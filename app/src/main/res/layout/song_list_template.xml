@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/parent"
+    android:backgroundTint="@color/black">
+
+    <androidx.cardview.widget.CardView
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:id="@+id/cardView"
+        app:layout_constraintTop_toTopOf="parent"
+        >
+
+        <androidx.constraintlayout.widget.ConstraintLayout
+            android:layout_height="wrap_content"
+            android:layout_width="match_parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:background="@color/black"
+            android:id="@+id/cardViewItemsHolder"
+            >
+
+            <de.hdodenhof.circleimageview.CircleImageView
+                android:layout_width="45dp"
+                android:layout_height="match_parent"
+                app:layout_constraintStart_toStartOf="parent"
+                android:id="@+id/currentSongIcon"
+                app:layout_constraintTop_toTopOf="parent"
+                app:layout_constraintBottom_toBottomOf="parent"
+                android:contentDescription="Image of current song playing" />
+
+            <androidx.appcompat.widget.AppCompatTextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/songName"
+                app:layout_constraintStart_toEndOf="@id/currentSongIcon"
+                android:text="CurrentSongse3fffffsgs"
+                android:textSize="16sp"
+                app:layout_constraintTop_toTopOf="parent"
+                android:layout_marginStart="5dp"
+                android:textStyle="bold"
+                android:maxLines="1"
+                android:textColor="@color/orange"
+                android:fontFamily="@font/rem_normal"
+                />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:id="@+id/songDuration"
+                app:layout_constraintTop_toBottomOf="@id/songName"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="@id/currentSongIcon"
+                app:layout_constraintEnd_toEndOf="parent"
+                android:text="00:00"
+                android:textSize="15sp"
+                android:textStyle="bold"
+                android:textColor="@color/orange"
+                android:fontFamily="@font/rem_normal"
+                />
+
+                <androidx.appcompat.widget.AppCompatButton
+                    android:layout_width="35dp"
+                    android:layout_height="35dp"
+                    app:layout_constraintEnd_toEndOf="parent"
+                    app:layout_constraintTop_toTopOf="@id/songName"
+                    app:layout_constraintBottom_toBottomOf="@id/songDuration"
+                    android:contentDescription="add to favorite"
+                    android:id="@+id/favorite"
+                    android:background="@drawable/ic_not_favorite"
+                    />
+
+        </androidx.constraintlayout.widget.ConstraintLayout>
+    </androidx.cardview.widget.CardView>
+</androidx.constraintlayout.widget.ConstraintLayout>

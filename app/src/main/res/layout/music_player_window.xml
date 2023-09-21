@@ -1,0 +1,382 @@
+<?xml version="1.0" encoding="utf-8"?>
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/musicPlayerWindowLayout"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/chocolate"
+    app:layoutDescription="@xml/music_player_window_scene"
+    android:theme="@style/Base.AppTheme.DarkThemePlayer">
+
+    <ImageView
+        android:id="@+id/backgroundImageView"
+        android:layout_width="2000dp"
+        android:layout_height="1000dp"
+        android:background="@drawable/ic_music_icon_alt"
+        android:contentDescription="background"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+      />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        >
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Playing from: "
+            android:fontFamily="@font/rem_normal"
+            android:textStyle="bold"
+            android:layout_marginTop="10dp"
+            android:textSize="12sp"
+            android:textColor="@color/red"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toStartOf="@id/currentPlaylist"
+            app:layout_constraintTop_toTopOf="parent"
+            android:id="@+id/currentPlaylistText"
+            />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="4555555555555443"
+            android:fontFamily="@font/rem_italic"
+            android:layout_marginTop="10dp"
+            android:textSize="12sp"
+            android:id="@+id/currentPlaylist"
+            android:textColor="@color/red"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toEndOf="@id/currentPlaylistText"
+            app:layout_constraintTop_toTopOf="parent"
+            />
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <de.hdodenhof.circleimageview.CircleImageView
+        android:id="@+id/songAlbumCover"
+        android:layout_width="225dp"
+        android:layout_height="225dp"
+        android:layout_marginBottom="100dp"
+        android:src="@drawable/ic_music_icon_alt"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        />
+
+    <RelativeLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:layout_marginBottom="100dp">
+
+        <com.chibde.visualizer.CircleBarVisualizer
+            android:layout_width="wrap_content"
+            android:layout_height="350dp"
+            android:id="@+id/visualizerCircleBar"
+            android:layout_centerInParent="true"
+            />
+
+    </RelativeLayout>
+
+    <TextView
+        android:id="@+id/songNamePlayer"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="100dp"
+        android:gravity="center_horizontal"
+        android:text="Music Name"
+        android:textSize="16sp"
+        android:textStyle="bold"
+        app:layout_constraintBottom_toTopOf="@id/songAlbumCover"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:textAlignment="center"
+        android:fontFamily="@font/rem_normal"
+        />
+
+    <TextView
+        android:id="@+id/musicAlbum"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="20dp"
+        android:text="Album"
+        android:textSize="12sp"
+        android:textStyle="italic"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/songNamePlayer"
+        android:textAlignment="center"
+        android:fontFamily="@font/rem_italic"
+        />
+
+    <SeekBar
+        android:id="@+id/seekBar"
+        style="@style/Widget.AppCompat.ProgressBar.Horizontal"
+        android:layout_width="280dp"
+        android:layout_height="10dp"
+        android:layout_marginBottom="120dp"
+        android:background="@color/transparent"
+        android:progressTint="@color/orange"
+        android:progress="0"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        android:paddingStart="1dp"
+        android:paddingEnd="-5dp"
+        />
+
+    <TextView
+        android:id="@+id/currentTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00:00"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:textColor="@color/orange"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toStartOf="@id/seekBar"
+        app:layout_constraintTop_toTopOf="@id/seekBar"
+        app:layout_constraintBottom_toBottomOf="@id/seekBar"
+        android:fontFamily="@font/rem_normal"
+        />
+
+    <TextView
+        android:id="@+id/totalTime"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="00:00"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toEndOf="@id/seekBar"
+        app:layout_constraintTop_toTopOf="@id/seekBar"
+        app:layout_constraintBottom_toBottomOf="@id/seekBar"
+        android:textColor="@color/orange"
+        android:layout_marginBottom="0dp"
+        android:fontFamily="@font/rem_normal"/>
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/playPause"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:background="@drawable/ic_paused_icon"
+        android:backgroundTint="@color/colorOrangeDark"
+        android:backgroundTintMode="src_in"
+        android:contentDescription="Play/Pause"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/seekBar"
+        android:layout_marginTop="25dp"
+        />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/skipPrevious"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:background="@drawable/ic_skip_previous_icon"
+        android:backgroundTint="@color/colorOrangeDark"
+        android:backgroundTintMode="src_in"
+        android:contentDescription="Skip Previous"
+        app:layout_constraintTop_toBottomOf="@id/seekBar"
+        app:layout_constraintEnd_toStartOf="@id/playPause"
+        android:layout_marginEnd="30dp"
+        android:layout_marginTop="25dp"
+        />
+
+    <androidx.appcompat.widget.AppCompatButton
+        android:id="@+id/skipNext"
+        android:layout_width="30dp"
+        android:layout_height="30dp"
+        android:backgroundTintMode="src_in"
+        android:background="@drawable/ic_skip_next_icon"
+        android:backgroundTint="@color/colorOrangeDark"
+        android:contentDescription="Skip Next"
+        app:layout_constraintTop_toBottomOf="@id/seekBar"
+        app:layout_constraintStart_toEndOf="@id/playPause"
+        android:layout_marginStart="30dp"
+        android:layout_marginTop="25dp"
+        />
+
+
+    <LinearLayout
+        android:id="@+id/albumCoverOnClickLayout"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:visibility="invisible"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/musicAlbum"
+        android:orientation="vertical"
+        android:gravity="center"
+        >
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Change Album Art"
+            android:id="@+id/changeAlbumCover"
+            android:textStyle="bold"
+            android:background="@color/transparent"
+            android:textColor="@color/orange"
+            android:drawableEnd="@drawable/ic_album_cover_change"
+            />
+    </LinearLayout>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/repeating"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:background="@drawable/ic_repeat_all_on"
+            android:contentDescription="Loop"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:layout_marginRight="15dp"
+            android:backgroundTintMode="src_in"
+            android:backgroundTint="@color/colorOrangeDark"/>
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:layout_width="35dp"
+            android:layout_height="30dp"
+            android:id="@+id/lyrics"
+            android:background="@drawable/ic_lyrics"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            android:backgroundTint="@color/colorOrangeDark"
+            android:contentDescription="lyricsButton"
+            />
+
+        <androidx.appcompat.widget.AppCompatButton
+            android:id="@+id/shuffle"
+            android:layout_width="35dp"
+            android:layout_height="35dp"
+            android:background="@drawable/ic_shuffle_off"
+            android:contentDescription="Shuffle"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintBottom_toBottomOf="parent"
+            android:layout_marginLeft="15dp"
+            android:backgroundTintMode="src_in"
+            android:backgroundTint="@color/colorOrangeDark"/>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/playbackSpeedSlow"
+        android:layout_width="70dp"
+        android:layout_height="250dp"
+        android:background="@color/transparent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/songAlbumCover"
+        android:visibility="visible">
+
+        <TextView
+            android:id="@+id/slow"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="0.5x"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:textColor="@color/colorDarkDark"
+            android:fontFamily="@font/rem_normal"/>
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/playbackSpeedFast"
+        android:layout_width="70dp"
+        android:layout_height="250dp"
+        android:background="@color/transparent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/songAlbumCover"
+        android:visibility="visible">
+
+        <TextView
+            android:id="@+id/fast"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2x"
+            android:textSize="25sp"
+            android:textStyle="bold"
+            android:visibility="invisible"
+            app:layout_constraintBottom_toBottomOf="parent"
+            app:layout_constraintEnd_toEndOf="parent"
+            app:layout_constraintTop_toTopOf="parent"
+            app:layout_constraintStart_toStartOf="parent"
+            android:textColor="@color/colorDarkDark"
+            android:fontFamily="@font/rem_normal"/>
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/playbackSpeedSlowGuide"
+        android:layout_width="70dp"
+        android:layout_height="250dp"
+        android:background="@color/orange"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="@id/songAlbumCover"
+        android:visibility="invisible"/>
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:id="@+id/playbackSpeedFastGuide"
+        android:layout_width="70dp"
+        android:layout_height="250dp"
+        android:background="@color/orange"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintTop_toTopOf="@id/songAlbumCover"
+        android:visibility="invisible"/>
+
+    <de.hdodenhof.circleimageview.CircleImageView
+        android:id="@+id/songAlbumCoverGuide"
+        android:layout_width="225dp"
+        android:layout_height="225dp"
+        android:layout_marginBottom="100dp"
+        android:src="@drawable/ic_color_block"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent"
+        android:visibility="invisible"
+        />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        app:layout_constraintEnd_toEndOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toBottomOf="@id/musicAlbum"
+        android:text="You can change any album cover by long clicking on the album cover. Press anywhere to continue"
+        android:textColor="@color/orange"
+        android:textSize="20sp"
+        android:minLines="2"
+        android:id="@+id/tip"
+        android:fontFamily="@font/rem_normal"
+        android:textAlignment="center"
+        android:textStyle="bold"
+        android:visibility="invisible"
+        android:background="@color/colorDark"
+        />
+
+    <androidx.constraintlayout.widget.ConstraintLayout
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:id="@+id/guideLayout"
+        android:visibility="invisible"
+        >
+
+    </androidx.constraintlayout.widget.ConstraintLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
