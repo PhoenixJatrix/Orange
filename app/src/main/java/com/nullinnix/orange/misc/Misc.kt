@@ -1,4 +1,4 @@
-package com.nullinnix.orange
+package com.nullinnix.orange.misc
 
 import android.content.ClipData
 import android.content.ClipboardManager
@@ -16,7 +16,6 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.lifecycle.MutableLiveData
 import java.io.File
 import java.io.FileOutputStream
 

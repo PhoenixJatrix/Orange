@@ -4,18 +4,11 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.nullinnix.orange.ui.theme.Orange
+import com.nullinnix.orange.misc.Screens
+import com.nullinnix.orange.song_managing.SongsManager
 
 import com.nullinnix.orange.ui.theme.OrangeTheme
 
@@ -36,7 +29,9 @@ class MainActivity : ComponentActivity() {
                     composable(
                         route = Screens.HomeScreen.route
                     ){
-                        HomeScreen()
+                        HomeScreen(
+                            context = this@MainActivity
+                        )
                     }
 
                     composable(

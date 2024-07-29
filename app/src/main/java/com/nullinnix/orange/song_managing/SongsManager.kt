@@ -1,17 +1,20 @@
-package com.nullinnix.orange
+package com.nullinnix.orange.song_managing
 
 import android.annotation.SuppressLint
 import android.app.Activity
 import android.os.Build
 import android.provider.MediaStore
 import android.util.Log
-import androidx.annotation.RequiresApi
+import androidx.lifecycle.MutableLiveData
+import com.nullinnix.orange.SongData
 import java.io.File
 
 class SongsManager (private val context: Activity){
+    var currentPlaying = MutableLiveData<String>()
+    var songsList = MutableLiveData<Map<String, SongData>>()
     @SuppressLint("InlinedApi")
     fun getSongs() {
-        val songsList = mutableListOf<SongData>()
+        val songsList = mutableMapOf<String, SongData>()
 
         val projection = arrayOf(
             MediaStore.Audio.Media.TITLE,
@@ -51,10 +54,28 @@ class SongsManager (private val context: Activity){
             )
 
             if (File(songData.path).exists()) {
-                songsList.add(songData);
+                songsList[songData.id] = songData
             }
         }
 
         cursor?.close()
+    }
+
+    fun skipNext(songsList: List<String>) {
+        if(currentPlaying.value != null){
+            val currentSongIndex = songsList.indexOf(currentPlaying.value)
+            if(currentSongIndex < songsList.size){
+                currentPlaying = MutableLiveData(songsList[currentSongIndex + 1])
+            }
+        }
+    }
+
+    fun skipPrevious(songsList: List<String>) {
+        if(currentPlaying.value != null){
+            val currentSongIndex = songsList.indexOf(currentPlaying.value)
+            if(currentSongIndex != 0){
+                currentPlaying = MutableLiveData(songsList[currentSongIndex - 1])
+            }
+        }
     }
 }

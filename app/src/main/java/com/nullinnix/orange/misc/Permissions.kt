@@ -1,8 +1,7 @@
-package com.nullinnix.orange
+package com.nullinnix.orange.misc
 
 import android.Manifest
 import android.os.Build
-import android.view.WindowInsets.Side
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -24,13 +23,11 @@ import androidx.compose.ui.unit.dp
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.MultiplePermissionsState
 import com.google.accompanist.permissions.PermissionStatus
-import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberMultiplePermissionsState
-import com.google.accompanist.permissions.rememberPermissionState
+import com.nullinnix.orange.misc.corners
 import com.nullinnix.orange.ui.theme.Orange
 import com.nullinnix.orange.ui.theme.TranslucentBlack
 import com.nullinnix.orange.ui.theme.White
-import kotlinx.coroutines.CoroutineScope
 
 @Composable
 fun PermissionDialog() {
