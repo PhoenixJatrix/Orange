@@ -83,9 +83,30 @@ fun screenWidth(): Int {
 }
 
 fun createPersistentFilesOnLaunch(context: Context) {
+    if(!thumbnailsDirectory(context).exists()){
+        thumbnailsDirectory(context).mkdir()
+    }
 
+    if(!miscDirectory(context).exists()){
+        miscDirectory(context).mkdir()
+    }
+
+    if(!lastMusicLog(context).exists()){
+        writeRedundantFile(lastMusicLog(context))
+    }
 }
 
+fun thumbnailsDirectory(context: Context): File{
+    return File(context.filesDir, "Thumbnails")
+}
+
+fun miscDirectory(context: Context): File{
+    return File(context.filesDir, "Misc")
+}
+
+fun lastMusicLog(context: Context): File{
+    return File(miscDirectory(context), "lastMusicLog.txt")
+}
 
 //fun checkFirstRun(context: Context): Boolean {
 //    return firstRunFile(context).exists()
@@ -205,6 +226,16 @@ fun cleanJSON(json: String): List<String> {
         }
     }
     return validatedPairs
+}
+
+fun durationMillisToStringMinutes(duration: Long): String{
+    val durationInSeconds = duration / 1000
+    var minutes = "${durationInSeconds / 60}"
+    var seconds = "${durationInSeconds % 60}"
+
+    minutes = if(minutes.toInt() < 10) "0$minutes" else minutes
+    seconds = if(seconds.toInt() < 10) "0$seconds" else seconds
+    return "$minutes:$seconds"
 }
 
 const val ON_SKIP_NEXT = 1

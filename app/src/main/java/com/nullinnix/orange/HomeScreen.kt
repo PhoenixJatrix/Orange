@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -19,14 +20,20 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import androidx.lifecycle.MutableLiveData
 import com.nullinnix.orange.misc.RequestMediaPermission
 import com.nullinnix.orange.misc.checkMediaPermission
+import com.nullinnix.orange.song_managing.SongPlayer
 import com.nullinnix.orange.song_managing.SongsManager
+import com.nullinnix.orange.song_managing.UPDATE_SONGS
 import com.nullinnix.orange.ui.theme.Green
 import com.nullinnix.orange.ui.theme.MildBlack
 import com.nullinnix.orange.ui.theme.Orange
 import com.nullinnix.orange.ui.theme.White
 import com.nullinnix.orange.ui_utilities.Dialog
+import com.nullinnix.orange.ui_utilities.MiniPlayer
+import com.nullinnix.orange.ui_utilities.SongView
+import com.nullinnix.orange.ui_utilities.SongsList
 
 @Composable
 fun HomeScreen(context: Activity) {
@@ -44,12 +51,36 @@ fun HomeScreen(context: Activity) {
         mutableStateOf(SongsManager(context))
     }
 
-    val songsList = songsManager.songsList.value
+    val songsPlayer by remember {
+        mutableStateOf(SongPlayer())
+    }
+
+    var songsList by remember {
+        mutableStateOf(listOf<SongData>())
+    }
+
+    val currentPlaying = songsPlayer.currentPlaying.value
+
+    LaunchedEffect (Unit){
+        songsManager.isSongsUpdated()
+    }
+
+    LaunchedEffect(songsManager.update) {
+        if(songsManager.update.value == UPDATE_SONGS){
+            songsManager.getSongs{
+                songsList = it
+            }
+
+            songsManager.update = MutableLiveData(-1)
+        }
+    }
 
     Box(modifier = Modifier
         .fillMaxSize()
-        .background(MildBlack)){
-        if(songsList?.isEmpty() == true) {
+        .background(MildBlack),
+        contentAlignment = Alignment.Center
+    ){
+        if(songsList.isEmpty()) {
             Text(
                 text = if (!hasMediaPermission) buildAnnotatedString {
                     append("No songs found, make sure")
@@ -71,6 +102,12 @@ fun HomeScreen(context: Activity) {
                 textAlign = TextAlign.Center,
                 color = White
             )
+        } else {
+            SongsList(songsData = songsList, currentlyPlaying = currentPlaying!!, isMiniPlayerVisible = false)
+
+            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
+               // MiniPlayer()
+            }
         }
     }
 
@@ -89,9 +126,9 @@ fun HomeScreen(context: Activity) {
         ){
             if(it){
                 requestMediaPermission = true
-            } else {
-                showMediaPermissionDialog = false
             }
+
+            showMediaPermissionDialog = false
         }
     }
 
