@@ -16,8 +16,11 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.nullinnix.orange.song_managing.ALL_SONGS
+import com.nullinnix.orange.song_managing.LIKED_SONGS
 import java.io.File
 import java.io.FileOutputStream
+import java.time.LocalDate
 
 fun getPercentage(total: Int, percent: Int): Int {
     return (total * percent) / 100
@@ -83,16 +86,32 @@ fun screenWidth(): Int {
 }
 
 fun createPersistentFilesOnLaunch(context: Context) {
-    if(!thumbnailsDirectory(context).exists()){
+    if (!thumbnailsDirectory(context).exists()) {
         thumbnailsDirectory(context).mkdir()
     }
 
-    if(!miscDirectory(context).exists()){
+    if (!miscDirectory(context).exists()) {
         miscDirectory(context).mkdir()
     }
 
-    if(!lastMusicLog(context).exists()){
+    if (!playlistDirectory(context).exists()) {
+        playlistDirectory(context).mkdir()
+    }
+
+    if(!playlistsFile(context).exists()){
+        writeRedundantFile(playlistsFile(context))
+    }
+
+    if (!lastMusicLog(context).exists()) {
         writeRedundantFile(lastMusicLog(context))
+    }
+
+    if (!likedSongsFile(context).exists()) {
+        writeRedundantFile(likedSongsFile(context))
+    }
+
+    if (!lastPlaylistFile(context).exists()) {
+        writeRedundantFile(file = lastPlaylistFile(context), data = ALL_SONGS)
     }
 }
 
@@ -108,15 +127,31 @@ fun lastMusicLog(context: Context): File{
     return File(miscDirectory(context), "lastMusicLog.txt")
 }
 
+fun playlistsFile(context: Context): File{
+    return File(playlistDirectory(context), "playlists.txt")
+}
+
+fun playlistDirectory(context: Context): File{
+    return File(context.filesDir, "Playlists")
+}
+
+fun likedSongsFile(context: Context): File{
+    return File(playlistDirectory(context), "$LIKED_SONGS.txt")
+}
+
+fun lastPlaylistFile(context: Context): File{
+    return File(playlistDirectory(context), "lastPlaylist.txt")
+}
+
 //fun checkFirstRun(context: Context): Boolean {
 //    return firstRunFile(context).exists()
 //}
 
-fun writeRedundantFile(file: File) {
+fun writeRedundantFile(file: File, data: String = "") {
     try {
         val fos = FileOutputStream(file)
 
-        fos.write("redundant".toByteArray())
+        fos.write(data.toByteArray())
 
         fos.close()
     } catch (e: Exception) {
@@ -237,6 +272,12 @@ fun durationMillisToStringMinutes(duration: Long): String{
     seconds = if(seconds.toInt() < 10) "0$seconds" else seconds
     return "$minutes:$seconds"
 }
+
+fun getDate(): String {
+    return "${LocalDate.now().dayOfMonth}:${LocalDate.now().monthValue}:${LocalDate.now().year}"
+}
+
+const val allowedKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ()-"
 
 const val ON_SKIP_NEXT = 1
 const val ON_SKIP_PREVIOUS = -1

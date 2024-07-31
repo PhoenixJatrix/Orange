@@ -6,27 +6,35 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.os.Build
+import android.os.CountDownTimer
 import android.provider.MediaStore
 import android.util.Log
+import androidx.compose.foundation.shape.CornerSize
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import com.nullinnix.orange.SongData
 import com.nullinnix.orange.misc.lastMusicLog
+import com.nullinnix.orange.misc.thumbnailsDirectory
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.InputStreamReader
 
-class SongsManager (private val context: Activity){
-    var songsList = MutableLiveData(mutableListOf<SongData>())
+class SongsManager (private val context: Activity) {
+    var songsList = MutableLiveData(mutableMapOf<String, SongData>())
     var update = MutableLiveData(UPDATE_SONGS)
 
     @SuppressLint("InlinedApi")
-    fun getSongs(onDone: (List<SongData>) -> Unit) {
+    fun getSongs(onDone: (MutableMap<String, SongData>) -> Unit) {
         val projection = arrayOf(
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.DATA,
             MediaStore.Audio.Media._ID,
+            MediaStore.Audio.Media.DISPLAY_NAME,
             MediaStore.Audio.Media.DURATION,
             MediaStore.Audio.Media.ALBUM,
             MediaStore.Audio.Media.GENRE,
@@ -44,22 +52,23 @@ class SongsManager (private val context: Activity){
             ""
         )
 
-        songsList = MutableLiveData(mutableListOf())
+        songsList = MutableLiveData(mutableMapOf())
 
         while (cursor?.moveToNext() == true) {
             val songData = SongData(
                 title = cursor.getString(0),
                 path = cursor.getString(1),
                 id = cursor.getString(2),
-                duration = cursor.getString(3).toLong(),
-                album = cursor.getString(4),
-                genre = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) cursor.getString(5) else null,
-                artist = cursor.getString(6),
-                thumbnail = getThumbnailFromPath("${cursor.getString(1).split(".")[0]}.jpg")
+                displayName = cursor.getString(3),
+                duration = cursor.getString(4).toLong(),
+                album = cursor.getString(5),
+                genre = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) cursor.getString(6) else null,
+                artist = cursor.getString(7),
+                thumbnail = getThumbnailFromPath(cursor.getString(2))
             )
 
-            songsList.value!!.add(songData)
-            Log.d("", "getSongs: $songsList")
+            songsList.value!![songData.id] = songData
+            Log.d("", "getSongs: ${songData.id}")
         }
 
         cursor?.close()
@@ -68,39 +77,57 @@ class SongsManager (private val context: Activity){
 
     private fun updateThumbnails(){
         if(songsList.value != null) {
-            for (song in songsList.value!!) {
-                if(!File("${song.path}.jpg").exists()){
+            for (song in songsList.value!!.keys) {
+                if(!File("${song}.jpg").exists()){
                     val meta = MediaMetadataRetriever()
-                    meta.setDataSource(song.path)
+                    meta.setDataSource(songsList.value!![song]!!.path)
                     val picture = meta.embeddedPicture
                     if(picture != null){
                         val bitmapThumbnail = BitmapFactory.decodeByteArray(picture, 0, picture.size)
                         bitmapThumbnail.compress(
                             Bitmap.CompressFormat.JPEG,
                             100,
-                            FileOutputStream(File("${song.path}.jpg"))
+                            FileOutputStream(File(thumbnailsDirectory(context),"${songsList.value!![song]!!.id}.jpg"))
                         )
                     }
                 }
             }
         }
 
-        update = MutableLiveData(UPDATE_SONGS)
+        //removeUnusedThumbnails()
+        update.value = UPDATE_SONGS
+    }
+    private fun removeUnusedThumbnails(){
+        val logs = getLastLog()
+        val allThumbnails = thumbnailsDirectory(context).listFiles()
+
+        allThumbnails?.forEach {
+            if(!logs.contains(it.name)){
+                it.delete()
+            }
+        }
     }
 
-    fun isSongsUpdated(){
+    fun isSongsUpdated() {
+        Log.d("", "isSongsUpdated: called")
         val currentLog = mutableListOf<String>()
+        var lastLog = getLastLog()
 
-        if(songsList.value != null) {
-            for (song in songsList.value!!) {
-                currentLog.add(song.path)
+        if (songsList.value!!.isNotEmpty()) {
+            for (song in songsList.value!!.keys) {
+                currentLog.add(song)
             }
         }
 
-        val lastLog = getLastLog()
+        if (lastLog.isEmpty() && songsList.value!!.isNotEmpty()) {
+            Log.d("", "isSongsUpdated: called 2")
+            updateThumbnails()
+            setLastLog(currentLog)
+            lastLog = getLastLog()
+        }
 
-        for(log in lastLog){
-            if(!currentLog.contains(log)){
+        for (log in lastLog) {
+            if (!currentLog.contains(log)) {
                 setLastLog(currentLog)
                 updateThumbnails()
                 break
@@ -108,7 +135,7 @@ class SongsManager (private val context: Activity){
         }
     }
 
-    private fun getLastLog(): List<String>{
+    fun getLastLog(): List<String>{
         val lastLog = mutableListOf<String>()
 
         try {
@@ -130,21 +157,36 @@ class SongsManager (private val context: Activity){
         return lastLog
     }
 
-    private fun setLastLog(logs: List<String>){
+    private fun setLastLog(logs: List<String>?){
         try {
             val fos = FileOutputStream(lastMusicLog(context))
 
-            for(log in logs){
-                fos.write("$log\n".toByteArray())
+            if(logs != null){
+                for(log in logs){
+                    fos.write("$log\n".toByteArray())
+                }
+            } else {
+                fos.write("".toByteArray())
             }
+
+            fos.close()
 
         } catch (e: Exception){
             e.printStackTrace()
         }
     }
 
-    private fun getThumbnailFromPath(path: String): Bitmap? {
-        return if(File(path).exists()) BitmapFactory.decodeFile(path) else null
+    private fun getThumbnailFromPath(id: String): Bitmap? {
+        return if(File(thumbnailsDirectory(context),"${id}.jpg").exists()) BitmapFactory.decodeFile(File(thumbnailsDirectory(context),"${id}.jpg").toString()) else null
+    }
+
+    fun refresh(){
+        setLastLog(null)
+        Log.d("", "HomeScreen: 333")
+        CoroutineScope(Dispatchers.Main).launch {
+            update = MutableLiveData(-1)
+            update = MutableLiveData(UPDATE_SONGS)
+        }
     }
 }
 

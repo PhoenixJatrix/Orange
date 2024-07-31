@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Person
@@ -46,6 +47,8 @@ import androidx.compose.ui.unit.sp
 import com.nullinnix.orange.SongData
 import com.nullinnix.orange.misc.corners
 import com.nullinnix.orange.misc.durationMillisToStringMinutes
+import com.nullinnix.orange.misc.getPercentage
+import com.nullinnix.orange.misc.screenWidth
 import com.nullinnix.orange.ui.theme.BarelyVisibleBlack
 import com.nullinnix.orange.ui.theme.LighterGray
 import com.nullinnix.orange.ui.theme.MildBlack
@@ -55,7 +58,7 @@ import com.nullinnix.orange.ui.theme.Translucent
 import com.nullinnix.orange.ui.theme.White
 
 @Composable
-fun SongsList(songsData: List<SongData>, currentlyPlaying: Int, isMiniPlayerVisible: Boolean) {
+fun SongsList(songIDs: List<String>, allDeviceSongs: Map<String, SongData>, currentlyPlaying: Int, isMiniPlayerVisible: Boolean) {
     LazyColumn(
         Modifier
             .fillMaxSize()
@@ -64,13 +67,13 @@ fun SongsList(songsData: List<SongData>, currentlyPlaying: Int, isMiniPlayerVisi
             )
     ) {
         item {
-            Spacer(modifier = Modifier.height(70.dp))
+            Spacer(modifier = Modifier.height(90.dp))
         }
 
-        items(songsData.size) {
-            SongView(songData = songsData[it], currentlyPlaying = currentlyPlaying, id = it)
+        items(songIDs.size) {index ->
+            SongView(songData = allDeviceSongs[songIDs[index]]!!, currentlyPlaying = currentlyPlaying, id = index)
 
-            if(it != songsData.size - 1) {
+            if(index != songIDs.size - 1) {
                 Spacer(modifier = Modifier.height(5.dp))
                 Spacer(modifier = Modifier.height(5.dp))
             }
@@ -88,81 +91,98 @@ fun SongView(songData: SongData, currentlyPlaying: Int, id: Int) {
         mutableStateOf(false)
     }
 
-    Row (
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(corners(10.dp))
-            .background(if(id % 2 == 0) BarelyVisibleBlack else Translucent)
-            .pointerInput(Unit) {
-                detectTapGestures(
-                    onLongPress = {
-                        isFullyShown = !isFullyShown
-                    }
-                )
-            }
-            .padding(vertical = 3.dp, horizontal = 3.dp)
-            .animateContentSize()
-    ) {
-        Image(imageVector = Icons.Default.PlayArrow, contentDescription = "", modifier = Modifier
-            .align(Alignment.CenterVertically)
-            .clip(
-                corners(90.dp)
+    Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
+        if(songData.thumbnail != null) {
+            Image(
+                bitmap = songData.thumbnail.asImageBitmap(), contentDescription = "", modifier = Modifier
+                    .align(Alignment.CenterStart)
+                    .clip(
+                        corners(90.dp)
+                    )
+                    .size(35.dp)
+                    .clickable {
+
+                    }, colorFilter = ColorFilter.tint(Orange)
             )
-            .size(35.dp)
-            .clickable {
+        }
 
-            }, colorFilter = ColorFilter.tint(Orange)
-        )
+        Row(
+            modifier = Modifier
+                .width(getPercentage(screenWidth(), 80).dp)
+                .clip(corners(10.dp))
+                .background(if (id % 2 == 0) BarelyVisibleBlack else Translucent)
+                .pointerInput(Unit) {
+                    detectTapGestures(
+                        onLongPress = {
+                            isFullyShown = !isFullyShown
+                        }
+                    )
+                }
+                .padding(vertical = 3.dp, horizontal = 3.dp)
+                .animateContentSize()
+        ) {
+            Column {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        text = songData.title,
+                        modifier = Modifier.fillMaxWidth(0.85f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Medium,
+                        color = White
+                    )
 
-        Column {
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(
+                        text = durationMillisToStringMinutes(songData.duration),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Medium,
+                        color = White
+                    )
+                }
+
                 Text(
-                    text = songData.title,
+                    text = "Artist: ${songData.artist}",
                     modifier = Modifier.fillMaxWidth(0.85f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontWeight = FontWeight.Medium,
-                    color = White
-                )
-
-                Text(
-                    text = durationMillisToStringMinutes(songData.duration),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Medium,
-                    color = White
-                )
-            }
-
-            Text(
-                text = "Artist: ${songData.artist}",
-                modifier = Modifier.fillMaxWidth(0.85f),
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                fontWeight = FontWeight.Medium,
-                color = LighterGray,
-                fontSize = 14.sp
-            )
-
-            if (isFullyShown) {
-                Text(
-                    text = "Album: ${songData.album}",
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Medium,
                     color = LighterGray,
                     fontSize = 14.sp
                 )
-                Text(
-                    text = "Genre: ${songData.genre ?: "Unknown Genre"}",
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Medium,
-                    color = LighterGray,
-                    fontSize = 14.sp
-                )
+
+                if (isFullyShown) {
+                    Text(
+                        text = "Album: ${songData.album}",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Medium,
+                        color = LighterGray,
+                        fontSize = 14.sp
+                    )
+                    Text(
+                        text = "Genre: ${songData.genre ?: "Unknown Genre"}",
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        fontWeight = FontWeight.Medium,
+                        color = LighterGray,
+                        fontSize = 14.sp
+                    )
+                }
             }
         }
+
+        Image(
+            imageVector = Icons.Default.PlayArrow, contentDescription = "", modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .clip(
+                    corners(90.dp)
+                )
+                .size(35.dp)
+                .clickable {
+
+                }, colorFilter = ColorFilter.tint(Orange)
+        )
     }
 }
 

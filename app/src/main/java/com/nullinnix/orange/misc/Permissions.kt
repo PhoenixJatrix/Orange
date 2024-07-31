@@ -1,6 +1,8 @@
 package com.nullinnix.orange.misc
 
 import android.Manifest
+import android.content.Context
+import android.content.pm.PackageManager
 import android.os.Build
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
@@ -11,7 +13,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -28,6 +36,7 @@ import com.nullinnix.orange.misc.corners
 import com.nullinnix.orange.ui.theme.Orange
 import com.nullinnix.orange.ui.theme.TranslucentBlack
 import com.nullinnix.orange.ui.theme.White
+import kotlinx.coroutines.delay
 
 @Composable
 fun PermissionDialog() {
@@ -160,4 +169,29 @@ fun getInitImage(onRequestPermission:() -> Unit, onGetImage: () -> Unit, permiss
             onRequestPermission()
         }
     }
+}
+
+fun hasAllMediaPermissions(context: Context): Boolean {
+    val mediaPermission = when(Build.VERSION.SDK_INT) {
+        in Int.MIN_VALUE..Build.VERSION_CODES.Q -> {
+            listOf(
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+            )
+        }
+
+        else -> {
+            listOf(
+                Manifest.permission.READ_MEDIA_AUDIO
+            )
+        }
+    }
+
+    for(permission in mediaPermission){
+        if(context.checkSelfPermission(permission) != PackageManager.PERMISSION_GRANTED){
+            return false
+        }
+    }
+
+    return true
 }

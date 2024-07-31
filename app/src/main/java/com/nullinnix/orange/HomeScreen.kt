@@ -1,7 +1,7 @@
 package com.nullinnix.orange
 
 import android.app.Activity
-import android.content.Context
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
@@ -20,23 +20,23 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
-import androidx.lifecycle.MutableLiveData
 import com.nullinnix.orange.misc.RequestMediaPermission
 import com.nullinnix.orange.misc.checkMediaPermission
+import com.nullinnix.orange.song_managing.LIKED_SONGS
+import com.nullinnix.orange.song_managing.PlaylistManager
+import com.nullinnix.orange.song_managing.SET
 import com.nullinnix.orange.song_managing.SongPlayer
 import com.nullinnix.orange.song_managing.SongsManager
-import com.nullinnix.orange.song_managing.UPDATE_SONGS
-import com.nullinnix.orange.ui.theme.Green
 import com.nullinnix.orange.ui.theme.MildBlack
 import com.nullinnix.orange.ui.theme.Orange
 import com.nullinnix.orange.ui.theme.White
 import com.nullinnix.orange.ui_utilities.Dialog
-import com.nullinnix.orange.ui_utilities.MiniPlayer
-import com.nullinnix.orange.ui_utilities.SongView
 import com.nullinnix.orange.ui_utilities.SongsList
+import com.nullinnix.orange.ui_utilities.TopAppBar
+import kotlinx.coroutines.delay
 
 @Composable
-fun HomeScreen(context: Activity) {
+fun HomeScreen(context: Activity, songsManager: SongsManager, songsPlayer: SongPlayer, playlistManager: PlaylistManager) {
     var requestMediaPermission by remember {
         mutableStateOf(false)
     }
@@ -47,31 +47,52 @@ fun HomeScreen(context: Activity) {
         mutableStateOf(!hasMediaPermission)
     }
 
-    val songsManager by remember {
-        mutableStateOf(SongsManager(context))
+    var allDeviceSongs by remember {
+        mutableStateOf(songsManager.songsList.value!!.toMap())
     }
 
-    val songsPlayer by remember {
-        mutableStateOf(SongPlayer())
+    var allSongsInPlaylist by remember {
+        mutableStateOf(listOf<String>())
     }
 
-    var songsList by remember {
-        mutableStateOf(listOf<SongData>())
+    var playlists by remember {
+        mutableStateOf(playlistManager.playlists.value!!.toMap())
     }
 
-    val currentPlaying = songsPlayer.currentPlaying.value
-
-    LaunchedEffect (Unit){
-        songsManager.isSongsUpdated()
+    var likedSongs by remember {
+        mutableStateOf(listOf<String>())
     }
 
-    LaunchedEffect(songsManager.update) {
-        if(songsManager.update.value == UPDATE_SONGS){
-            songsManager.getSongs{
-                songsList = it
-            }
+    var currentPlaylist by remember {
+        mutableStateOf(playlistManager.currentPlaylist.value!!)
+    }
 
-            songsManager.update = MutableLiveData(-1)
+    var playlistUpdated by remember {
+        mutableStateOf(false)
+    }
+
+    songsPlayer.currentPlaying.observeForever {
+
+    }
+
+    playlistManager.currentPlaylist.observeForever {
+        if(playlistUpdated){
+            playlistUpdated = false
+            allSongsInPlaylist = playlistManager.getSongIDsFromPlaylist(it)
+            currentPlaylist = it
+            playlistManager.lastPlaylist(SET, it)
+        }
+    }
+
+    LaunchedEffect(key1 = Unit) {
+        delay(1000)
+        playlistUpdated = true
+    }
+
+    LaunchedEffect(hasMediaPermission) {
+        if (hasMediaPermission) {
+            likedSongs = playlistManager.getSongIDsFromPlaylist(LIKED_SONGS)
+            allSongsInPlaylist = playlistManager.getSongIDsFromPlaylist(currentPlaylist)
         }
     }
 
@@ -80,7 +101,7 @@ fun HomeScreen(context: Activity) {
         .background(MildBlack),
         contentAlignment = Alignment.Center
     ){
-        if(songsList.isEmpty()) {
+        if(allSongsInPlaylist.isEmpty()) {
             Text(
                 text = if (!hasMediaPermission) buildAnnotatedString {
                     append("No songs found, make sure")
@@ -94,7 +115,7 @@ fun HomeScreen(context: Activity) {
                     }
                     append("has media permission")
                 } else buildAnnotatedString {
-                    append("No songs found")
+                    append("No songs in playlist")
                 },
                 modifier = Modifier
                     .align(Alignment.Center)
@@ -103,12 +124,25 @@ fun HomeScreen(context: Activity) {
                 color = White
             )
         } else {
-            SongsList(songsData = songsList, currentlyPlaying = currentPlaying!!, isMiniPlayerVisible = false)
+            SongsList(songIDs = allSongsInPlaylist, allDeviceSongs = allDeviceSongs, currentlyPlaying = 3, isMiniPlayerVisible = false)
 
             Box(modifier = Modifier.align(Alignment.BottomCenter)) {
                // MiniPlayer()
             }
         }
+
+        TopAppBar(
+            currentPlaylist = currentPlaylist,
+            playlists = playlists,
+            modifier = Modifier.align(Alignment.TopCenter),
+            onPlaylistChanged = {
+                playlistUpdated = true
+                playlistManager.currentPlaylist.value = it
+            },
+            onCreatePlaylist = {
+
+            }
+        )
     }
 
     if(showMediaPermissionDialog){
