@@ -10,6 +10,7 @@ import com.nullinnix.orange.misc.getDate
 import com.nullinnix.orange.misc.lastPlaylistFile
 import com.nullinnix.orange.misc.playlistDirectory
 import com.nullinnix.orange.misc.playlistsFile
+import com.nullinnix.orange.misc.writeRedundantFile
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
@@ -21,7 +22,27 @@ class PlaylistManager (private val context: Activity){
     var currentPlaylist = MutableLiveData(ALL_SONGS)
     var playlists = MutableLiveData(mutableMapOf<String, Playlist>())
     fun getPlaylists(): Map<String, Playlist> {
-        playlists.value = mutableMapOf()
+        val protoPlaylist = mutableMapOf<String, Playlist>()
+
+        val songsManager = SongsManager(context)
+
+        protoPlaylist[ALL_SONGS] =
+            Playlist(
+                name = "All songs",
+                id = ALL_SONGS,
+                dateCreated = "Genesis",
+                songs = songsManager.getLastLog(),
+                deletable = false
+            )
+
+        protoPlaylist[LIKED_SONGS] =
+            Playlist(
+                name = "Liked songs",
+                id = LIKED_SONGS,
+                dateCreated = "Genesis",
+                songs = getSongIDsFromPlaylist(LIKED_SONGS),
+                deletable = false
+            )
 
         try {
             val playlistsFis = FileInputStream(playlistsFile(context))
@@ -29,18 +50,22 @@ class PlaylistManager (private val context: Activity){
             var line = reader.readLine()
 
             while (line != null) {
-                if (File(playlistDirectory(context), line).exists()) {
-                    val name = line.split(",")[0]
-                    val id = line.split(",")[1]
-                    val dateCreated = line.split(",")[1]
+                Log.d("", "createPlaylist: $line")
+                val name = line.split(",")[0]
+                val id = line.split(",")[1]
+                val dateCreated = line.split(",")[2]
 
-                    playlists.value!![id] =
-                        Playlist(
-                            name = name,
-                            id = id,
-                            dateCreated = dateCreated,
-                            songs = getSongIDsFromPlaylist(id)
-                        )
+                if (File(playlistDirectory(context), "$id.txt").exists()) {
+                    if(!listOf(ALL_SONGS, LIKED_SONGS).contains(id)){
+                        protoPlaylist[id] =
+                            Playlist(
+                                name = name,
+                                id = id,
+                                dateCreated = dateCreated,
+                                songs = getSongIDsFromPlaylist(id),
+                                deletable = true
+                            )
+                    }
                 }
 
                 line = reader.readLine()
@@ -52,32 +77,16 @@ class PlaylistManager (private val context: Activity){
             e.printStackTrace()
         }
 
-        val songsManager = SongsManager(context)
-
-        playlists.value!![ALL_SONGS] =
-            Playlist(
-                name = "All songs",
-                id = ALL_SONGS,
-                dateCreated = "Genesis",
-                songs = songsManager.getLastLog()
-            )
-
-        playlists.value!![LIKED_SONGS] =
-            Playlist(
-                name = "Liked songs",
-                id = LIKED_SONGS,
-                dateCreated = "Genesis",
-                songs = getSongIDsFromPlaylist(LIKED_SONGS)
-            )
+        playlists.value = protoPlaylist
 
         return playlists.value!!
     }
 
-    fun getSongIDsFromPlaylist(playlist: String) : List<String> {
-        if(playlist != ALL_SONGS){
+    fun getSongIDsFromPlaylist(playlistID: String) : List<String> {
+        if(playlistID != ALL_SONGS){
             val songs = mutableListOf<String>()
             try {
-                val songFIS = FileInputStream(File(playlistDirectory(context), "$playlist.txt"))
+                val songFIS = FileInputStream(File(playlistDirectory(context), "$playlistID.txt"))
                 val reader = BufferedReader(InputStreamReader(songFIS))
                 var line = reader.readLine()
 
@@ -100,27 +109,41 @@ class PlaylistManager (private val context: Activity){
         }
     }
 
-    fun createPlaylist(name: String): Boolean{
-        for(letter in name){
-            if(!allowedKeys.contains(letter.lowercase())){
-                return false
+    fun createPlaylist(name: String, songsToAdd: List<String>?, onSuccess: (String) -> Unit): Boolean{
+        val oldPlaylists = playlists.value!!.values
+
+        var cleanedName = ""
+        name.forEach {
+            if(allowedKeys.contains(it.lowercase())){
+                cleanedName += it
             }
         }
-
-        val oldPlaylists = getPlaylists().values
 
         try {
             val fos = FileOutputStream(playlistsFile(context))
 
             for(playlist in oldPlaylists){
-                fos.write("${playlist.name},${playlist.id},${playlist.dateCreated}\n".toByteArray())
+                if(!listOf(ALL_SONGS, LIKED_SONGS).contains(playlist.id)){
+                    fos.write("${playlist.name},${playlist.id},${playlist.dateCreated}\n".toByteArray())
+                }
             }
 
             val id = Random.nextInt(1_000, 10_000_000)
             val dateCreated = getDate()
-            fos.write("$name,$id,$dateCreated\n".toByteArray())
+            fos.write("$cleanedName,$id,$dateCreated\n".toByteArray())
 
+            writeRedundantFile(File(playlistDirectory(context), "$id.txt"))
             fos.close()
+
+            if(songsToAdd != null){
+                addSongsToPlaylist(id.toString(), songsToAdd)
+            } else {
+                getPlaylists()
+            }
+
+            if(File(playlistDirectory(context), "$id.txt").exists()){
+                onSuccess(id.toString())
+            }
         } catch (e: Exception){
             e.printStackTrace()
         }
@@ -128,53 +151,62 @@ class PlaylistManager (private val context: Activity){
         return true
     }
 
-    fun deletePlaylist(name: String){
+    fun deletePlaylist(playlistID: String){
         try {
             val fos = FileOutputStream(playlistsFile(context))
 
-            for(playlist in getPlaylists().values){
-                if(playlist.name != name){
-                    fos.write("${playlist.name},${playlist.id},${playlist.dateCreated}\n".toByteArray())
+            for(playlist in playlists.value!!.values){
+                if(playlist.id != playlistID){
+                    if(!listOf(ALL_SONGS, LIKED_SONGS).contains(playlist.id)) {
+                        fos.write("${playlist.name},${playlist.id},${playlist.dateCreated}\n".toByteArray())
+                    }
                 }
             }
 
             fos.close()
+            File(playlistDirectory(context), "$playlistID.txt").delete()
 
-            File(playlistDirectory(context), name).delete()
+            getPlaylists()
         } catch (e: Exception){
             e.printStackTrace()
         }
     }
 
-    fun addSongsToPlaylist(playlistID: String, songsToAdd: List<String>, previousSongsInPlaylist: List<String>){
+    fun addSongsToPlaylist(playlistID: String, songsToAdd: List<String>){
         try {
             val fos = FileOutputStream(File(playlistDirectory(context), "$playlistID.txt"))
+            val previousSongsInPlaylist = playlists.value!![playlistID]?.songs ?: listOf()
 
             for(song in previousSongsInPlaylist){
                 fos.write("${song}\n".toByteArray())
             }
 
             for(song in songsToAdd){
-                fos.write("${song}\n".toByteArray())
-            }
-
-            fos.close()
-        } catch (e: Exception){
-            e.printStackTrace()
-        }
-    }
-
-    fun removeSongFromPlaylist(playlistID: String, songToRemove: String, previousSongsInPlaylist: List<String>){
-        try {
-            val fos = FileOutputStream(File(playlistDirectory(context), "$playlistID.txt"))
-
-            for(song in previousSongsInPlaylist){
-                if(song != songToRemove){
+                if(!previousSongsInPlaylist.contains(song)){
                     fos.write("${song}\n".toByteArray())
                 }
             }
 
             fos.close()
+            getPlaylists()
+        } catch (e: Exception){
+            e.printStackTrace()
+        }
+    }
+
+    fun removeSongFromPlaylist(playlistID: String, songsToRemove: List<String>){
+        try {
+            val fos = FileOutputStream(File(playlistDirectory(context), "$playlistID.txt"))
+            val previousSongsInPlaylist = playlists.value!![playlistID]?.songs ?: listOf()
+
+            for(song in previousSongsInPlaylist){
+                if(!songsToRemove.contains(song)){
+                    fos.write("${song}\n".toByteArray())
+                }
+            }
+
+            fos.close()
+            getPlaylists()
         } catch (e: Exception){
             e.printStackTrace()
         }
@@ -191,7 +223,7 @@ class PlaylistManager (private val context: Activity){
                     fis.close()
                     reader.close()
 
-                    return line
+                    return if(File(playlistDirectory(context), "$line.txt").exists() && playlists.value!!.containsKey(line)) line else ALL_SONGS
                 } catch (e: Exception){
                     e.printStackTrace()
                     return ALL_SONGS
@@ -201,10 +233,15 @@ class PlaylistManager (private val context: Activity){
             SET -> {
                 try {
                     val fos = FileOutputStream(lastPlaylistFile(context))
-                    fos.write("$playlistID".toByteArray())
+                    if(File(playlistDirectory(context), "$playlistID.txt").exists()){
+                        fos.write("$playlistID".toByteArray())
+                        currentPlaylist.value = playlistID
+                    } else {
+                        fos.write(ALL_SONGS.toByteArray())
+                        currentPlaylist.value = ALL_SONGS
+                    }
 
                     fos.close()
-                    currentPlaylist.value = playlistID
                 } catch (e: Exception){
                     e.printStackTrace()
                     return ALL_SONGS

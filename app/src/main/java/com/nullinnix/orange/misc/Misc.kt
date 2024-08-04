@@ -4,6 +4,7 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.CLIPBOARD_SERVICE
+import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,6 +17,7 @@ import androidx.compose.ui.composed
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.nullinnix.orange.SongData
 import com.nullinnix.orange.song_managing.ALL_SONGS
 import com.nullinnix.orange.song_managing.LIKED_SONGS
 import java.io.File
@@ -275,6 +277,49 @@ fun durationMillisToStringMinutes(duration: Long): String{
 
 fun getDate(): String {
     return "${LocalDate.now().dayOfMonth}:${LocalDate.now().monthValue}:${LocalDate.now().year}"
+}
+
+fun getInterval(allSongsInPlaylist: List<String>, selectedSongs: List<String>): List<String>{
+    val intersection = mutableListOf<String>()
+    var startIndex = -1
+    var endIndex = -1
+
+    for(song in allSongsInPlaylist.indices){
+        if(selectedSongs.contains(allSongsInPlaylist[song])){
+            startIndex = song
+            break
+        }
+    }
+
+    for(song in allSongsInPlaylist.indices.reversed()){
+        if(selectedSongs.contains(allSongsInPlaylist[song])){
+            endIndex = song
+            break
+        }
+    }
+
+    IntRange(startIndex, endIndex).forEach {
+        intersection.add(allSongsInPlaylist[it])
+    }
+
+    return intersection
+}
+
+fun searchSongsByName(searchParameter: String, songsInPlaylist: Map<String, SongData>): List<String> {
+    val searchResults = mutableListOf<String>()
+
+    for (song in songsInPlaylist) {
+        if (
+            song.value.displayName.lowercase().contains(searchParameter) ||
+            song.value.title.lowercase().contains(searchParameter) ||
+            song.value.album.lowercase().contains(searchParameter) ||
+            song.value.artist.lowercase().contains(searchParameter)
+        ) {
+            searchResults.add(song.value.id)
+        }
+    }
+
+    return searchResults
 }
 
 const val allowedKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ()-"

@@ -4,6 +4,7 @@ import androidx.lifecycle.MutableLiveData
 
 class SongPlayer {
     var currentPlaying = MutableLiveData(0)
+    var currentSongState = MutableLiveData(PAUSED)
 
     fun skipNext(songsSize: Int) {
         if (currentPlaying.value != -1) {
@@ -21,3 +22,6 @@ class SongPlayer {
         }
     }
 }
+
+const val PAUSED = 0
+const val PLAYING = 1

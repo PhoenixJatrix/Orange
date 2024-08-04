@@ -30,6 +30,8 @@ class SongsManager (private val context: Activity) {
 
     @SuppressLint("InlinedApi")
     fun getSongs(onDone: (MutableMap<String, SongData>) -> Unit) {
+        val protoSongs = mutableMapOf<String, SongData>()
+
         val projection = arrayOf(
             MediaStore.Audio.Media.TITLE,
             MediaStore.Audio.Media.DATA,
@@ -52,8 +54,6 @@ class SongsManager (private val context: Activity) {
             ""
         )
 
-        songsList = MutableLiveData(mutableMapOf())
-
         while (cursor?.moveToNext() == true) {
             val songData = SongData(
                 title = cursor.getString(0),
@@ -67,11 +67,11 @@ class SongsManager (private val context: Activity) {
                 thumbnail = getThumbnailFromPath(cursor.getString(2))
             )
 
-            songsList.value!![songData.id] = songData
-            Log.d("", "getSongs: ${songData.id}")
+            protoSongs[songData.id] = songData
         }
 
         cursor?.close()
+        songsList.value = protoSongs
         onDone(songsList.value!!)
     }
 
@@ -84,8 +84,9 @@ class SongsManager (private val context: Activity) {
                     val picture = meta.embeddedPicture
                     if(picture != null){
                         val bitmapThumbnail = BitmapFactory.decodeByteArray(picture, 0, picture.size)
+
                         bitmapThumbnail.compress(
-                            Bitmap.CompressFormat.JPEG,
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Bitmap.CompressFormat.WEBP_LOSSY else Bitmap.CompressFormat.WEBP,
                             100,
                             FileOutputStream(File(thumbnailsDirectory(context),"${songsList.value!![song]!!.id}.jpg"))
                         )
@@ -94,7 +95,7 @@ class SongsManager (private val context: Activity) {
             }
         }
 
-        //removeUnusedThumbnails()
+        removeUnusedThumbnails()
         update.value = UPDATE_SONGS
     }
     private fun removeUnusedThumbnails(){
@@ -109,7 +110,6 @@ class SongsManager (private val context: Activity) {
     }
 
     fun isSongsUpdated() {
-        Log.d("", "isSongsUpdated: called")
         val currentLog = mutableListOf<String>()
         var lastLog = getLastLog()
 
@@ -120,7 +120,6 @@ class SongsManager (private val context: Activity) {
         }
 
         if (lastLog.isEmpty() && songsList.value!!.isNotEmpty()) {
-            Log.d("", "isSongsUpdated: called 2")
             updateThumbnails()
             setLastLog(currentLog)
             lastLog = getLastLog()
@@ -178,15 +177,6 @@ class SongsManager (private val context: Activity) {
 
     private fun getThumbnailFromPath(id: String): Bitmap? {
         return if(File(thumbnailsDirectory(context),"${id}.jpg").exists()) BitmapFactory.decodeFile(File(thumbnailsDirectory(context),"${id}.jpg").toString()) else null
-    }
-
-    fun refresh(){
-        setLastLog(null)
-        Log.d("", "HomeScreen: 333")
-        CoroutineScope(Dispatchers.Main).launch {
-            update = MutableLiveData(-1)
-            update = MutableLiveData(UPDATE_SONGS)
-        }
     }
 }
 
