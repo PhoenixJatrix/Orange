@@ -4,6 +4,8 @@ import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
 import android.content.Context.CLIPBOARD_SERVICE
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.util.Log
 import android.widget.Toast
 import androidx.compose.foundation.clickable
@@ -18,6 +20,9 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.nullinnix.orange.SongData
+import com.nullinnix.orange.VIEWING_ALBUMS
+import com.nullinnix.orange.VIEWING_ARTISTS
+import com.nullinnix.orange.VIEWING_GENRE
 import com.nullinnix.orange.song_managing.ALL_SONGS
 import com.nullinnix.orange.song_managing.LIKED_SONGS
 import java.io.File
@@ -320,6 +325,52 @@ fun searchSongsByName(searchParameter: String, songsInPlaylist: Map<String, Song
     }
 
     return searchResults
+}
+
+fun sortBy(sortType: Int, songsInPlaylist: Map<String, SongData>): Map<String, List<String>>{
+    val filteredKeyValues = mutableMapOf<String, List<String>>()
+
+    for(song in songsInPlaylist){
+        when(sortType){
+            VIEWING_ALBUMS -> {
+                if(filteredKeyValues[song.value.album] != null){
+                    filteredKeyValues[song.value.album] = filteredKeyValues[song.value.album]!! + song.value.id
+                } else {
+                    filteredKeyValues[song.value.album] = listOf(song.value.id)
+                }
+            }
+
+            VIEWING_GENRE -> {
+                if(song.value.genre != null) {
+                    if(filteredKeyValues[song.value.genre] != null){
+                        filteredKeyValues[song.value.genre!!] = filteredKeyValues[song.value.genre!!]!! + song.value.id
+                    } else {
+                        filteredKeyValues[song.value.genre!!] = listOf(song.value.id)
+                    }
+                }
+            }
+
+            VIEWING_ARTISTS -> {
+                if(filteredKeyValues[song.value.artist] != null){
+                    filteredKeyValues[song.value.artist] = filteredKeyValues[song.value.artist]!! + song.value.id
+                } else {
+                    filteredKeyValues[song.value.artist] = listOf(song.value.id)
+                }
+            }
+        }
+    }
+
+    return filteredKeyValues
+}
+
+fun getAnyAvailableAlbumCover(allSongsInPlaylist: List<SongData>, context: Context) : Bitmap? {
+    for(song in allSongsInPlaylist){
+        if(song.thumbnail != null){
+            return BitmapFactory.decodeFile(File(thumbnailsDirectory(context), "${song.id}.jpg").toString())
+        }
+    }
+
+    return null
 }
 
 const val allowedKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ()-"

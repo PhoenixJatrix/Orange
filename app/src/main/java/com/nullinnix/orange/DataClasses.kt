@@ -33,3 +33,8 @@ const val SELECT_ALL = 3
 
 const val ADDED_TO_PLAYLIST = 0
 const val CREATED_NEW_PLAYLIST = 1
+
+const val VIEWING_ALBUMS = -1
+const val VIEWING_ALL = 0
+const val VIEWING_ARTISTS = 1
+const val VIEWING_GENRE = 2

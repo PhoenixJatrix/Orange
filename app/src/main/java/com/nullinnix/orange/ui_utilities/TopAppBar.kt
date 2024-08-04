@@ -167,8 +167,7 @@ fun TopAppBar(
         Box(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(top = 45.dp)
-                .padding(end = 5.dp, start = 3.dp),
+                .padding(top = 45.dp),
             contentAlignment = Alignment.Center
         ) {
             LazyColumn(
@@ -497,7 +496,7 @@ fun TopAppBar(
                                 modifier = Modifier
                                     .size(25.dp)
                                     .rotate(playlistButtonRotationAnim),
-                                colorFilter = ColorFilter.tint(White)
+                                colorFilter = ColorFilter.tint(Orange)
                             )
                         }
                     }

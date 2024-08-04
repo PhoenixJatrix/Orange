@@ -5,6 +5,7 @@ import android.content.Context
 import android.util.Log
 import androidx.lifecycle.MutableLiveData
 import com.nullinnix.orange.Playlist
+import com.nullinnix.orange.SongData
 import com.nullinnix.orange.misc.allowedKeys
 import com.nullinnix.orange.misc.getDate
 import com.nullinnix.orange.misc.lastPlaylistFile
@@ -253,6 +254,15 @@ class PlaylistManager (private val context: Activity){
     }
 }
 
+fun getSongDataFromIDs(allPlaylistSongs: List<String>, allDeviceSongs: Map<String, SongData>): Map<String, SongData>{
+    val playlistToSearch = mutableMapOf<String, SongData>()
+
+    allPlaylistSongs.forEach{ songID ->
+        playlistToSearch[songID] = allDeviceSongs[songID]!!
+    }
+
+    return playlistToSearch
+}
 const val GET = 0
 const val SET = 1
 const val ALL_SONGS = "0"

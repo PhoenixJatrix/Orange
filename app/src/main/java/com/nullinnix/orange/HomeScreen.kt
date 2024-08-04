@@ -113,6 +113,10 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songsPlayer: SongP
         mutableStateOf(false)
     }
 
+    var currentSongSortType by remember {
+        mutableIntStateOf(VIEWING_ALL)
+    }
+
     playlistManager.currentPlaylist.observeForever {
         if(playlistUpdated){
             playlistUpdated = false
@@ -121,6 +125,10 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songsPlayer: SongP
             allSongsInPlaylist = playlistManager.getSongIDsFromPlaylist(it)
             currentPlaylist = it
             playlistManager.lastPlaylist(SET, it)
+
+            if(currentSongSortType != VIEWING_ALL){
+                currentSongSortType = VIEWING_ALL
+            }
         }
     }
 
@@ -128,6 +136,10 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songsPlayer: SongP
         if(allPlaylistsUpdated){
             allPlaylistsUpdated = false
             playlists = it
+
+            if(currentSongSortType != VIEWING_ALL){
+                currentSongSortType = VIEWING_ALL
+            }
         }
     }
 
@@ -135,6 +147,10 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songsPlayer: SongP
         if(songUpdated){
             songUpdated = false
             currentSong = it
+
+            if(currentSongSortType != VIEWING_ALL){
+                currentSongSortType = VIEWING_ALL
+            }
         }
     }
 
@@ -196,33 +212,48 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songsPlayer: SongP
                 isMultiSelecting = isMultiSelecting,
                 selectedSongs = selectedSongs,
                 isSearching = isSearching,
-                currentPlaylist = playlistManager.playlists.value!![currentPlaylist]!!
-            ) {action, id ->
-                when(action){
-                    MULTI_SELECT_SONGS -> {
-                        isMultiSelecting = true
-                        if (!selectedSongs.contains(id)) {
-                            val mutableProto = mutableListOf<String>()
-                            mutableProto.addAll(selectedSongs)
-                            mutableProto.add(id)
+                currentPlaylist = playlistManager.playlists.value!![currentPlaylist]!!,
+                currentSongSortType = currentSongSortType,
+                onAction = { action, id ->
+                    when (action) {
+                        MULTI_SELECT_SONGS -> {
+                            isMultiSelecting = true
+                            if (!selectedSongs.contains(id)) {
+                                val mutableProto = mutableListOf<String>()
+                                mutableProto.addAll(selectedSongs)
+                                mutableProto.add(id)
 
-                            selectedSongs = mutableProto.toList()
-                        } else {
-                            val mutableProto = mutableListOf<String>()
-                            mutableProto.addAll(selectedSongs)
-                            mutableProto.remove(id)
-                            selectedSongs = mutableProto.toList()
+                                selectedSongs = mutableProto.toList()
+                            } else {
+                                val mutableProto = mutableListOf<String>()
+                                mutableProto.addAll(selectedSongs)
+                                mutableProto.remove(id)
+                                selectedSongs = mutableProto.toList()
+                            }
+                        }
+
+                        PLAY_SONG -> {
+                            songsPlayer.currentSongState.value =
+                                if (songsPlayer.currentSongState.value == PAUSED) PLAYING else PAUSED
                         }
                     }
+                },
+                onSort = {sortType, sortedSongs ->
+                    currentSongSortType = sortType
+                    allSongsInPlaylist = when(sortedSongs){
+                        null -> {
+                            playlistManager.getSongIDsFromPlaylist(currentPlaylist)
+                        }
 
-                    PLAY_SONG -> {
-                        songsPlayer.currentSongState.value = if(songsPlayer.currentSongState.value == PAUSED) PLAYING else PAUSED
+                        else -> {
+                            sortedSongs
+                        }
                     }
                 }
-            }
+            )
 
             Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-               // MiniPlayer()
+                // MiniPlayer()
             }
         }
 
@@ -238,9 +269,17 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songsPlayer: SongP
                 onPlaylistChanged = {
                     playlistUpdated = true
                     playlistManager.currentPlaylist.value = it
+
+                    if(currentSongSortType != VIEWING_ALL){
+                        currentSongSortType = VIEWING_ALL
+                    }
                 },
                 onCreatePlaylist = {
                     showPlaylistEditor = true
+
+                    if(currentSongSortType != VIEWING_ALL){
+                        currentSongSortType = VIEWING_ALL
+                    }
                 },
                 onDeletePlaylist = {
                     playlistUpdated = true
@@ -248,6 +287,10 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songsPlayer: SongP
 
                     allPlaylistsUpdated = true
                     playlistManager.deletePlaylist(it)
+
+                    if(currentSongSortType != VIEWING_ALL){
+                        currentSongSortType = VIEWING_ALL
+                    }
                 },
                 onSearchParametersUpdate = {
                     if(!it.isNullOrEmpty()) {
@@ -261,9 +304,17 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songsPlayer: SongP
                     } else {
                         allSongsInPlaylist = playlistManager.playlists.value!![currentPlaylist]!!.songs
                     }
+
+                    if(currentSongSortType != VIEWING_ALL){
+                        currentSongSortType = VIEWING_ALL
+                    }
                 },
                 isSearchingUpdated = {
                     isSearching = it
+
+                    if(currentSongSortType != VIEWING_ALL){
+                        currentSongSortType = VIEWING_ALL
+                    }
                 }
             )
         }
