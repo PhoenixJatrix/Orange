@@ -16,6 +16,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.composed
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -25,6 +26,15 @@ import com.nullinnix.orange.VIEWING_ARTISTS
 import com.nullinnix.orange.VIEWING_GENRE
 import com.nullinnix.orange.song_managing.ALL_SONGS
 import com.nullinnix.orange.song_managing.LIKED_SONGS
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.COMPLETED
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.DORMANT
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.DATASOURCE_NOT_SET
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.DATASOURCE_SET
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PAUSED
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PLAYING
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PREPARED
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PREPARING
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.RESET
 import java.io.File
 import java.io.FileOutputStream
 import java.time.LocalDate
@@ -79,6 +89,15 @@ fun Modifier.noGleamTaps(enabled: Boolean = true, onClick: () -> Unit): Modifier
         indication = null,
         interactionSource = remember { MutableInteractionSource() },
         onClick = if (enabled) onClick else emptyClick
+    )
+}
+
+fun translucentColor(color: Color, alpha: Float = 0.3f): Color {
+    return Color(
+        red = color.red,
+        green = color.green,
+        blue = color.blue,
+        alpha = if(alpha >= 1f) 1f else alpha
     )
 }
 
@@ -380,3 +399,15 @@ const val ON_SKIP_PREVIOUS = -1
 const val ON_TOGGLE_PLAY= 0
 const val ON_CLOSE_MINI_PLAYER = 2
 const val ON_OPEN_FULL_PLAYER = 3
+
+val mediaPlayerStateAction = mapOf(
+    Pair(DORMANT, "DORMANT"),
+    Pair(PLAYING, "PLAYING"),
+    Pair(PAUSED, "PAUSED"),
+    Pair(COMPLETED, "COMPLETED"),
+    Pair(DATASOURCE_SET, "DATASOURCE_SET"),
+    Pair(PREPARING, "PREPARING"),
+    Pair(RESET, "RESET"),
+    Pair(PREPARED, "PREPARED"),
+    Pair(DATASOURCE_NOT_SET, "DATASOURCE_NOT_SET")
+)

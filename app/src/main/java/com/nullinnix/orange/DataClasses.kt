@@ -38,3 +38,12 @@ const val VIEWING_ALBUMS = -1
 const val VIEWING_ALL = 0
 const val VIEWING_ARTISTS = 1
 const val VIEWING_GENRE = 2
+
+const val NOT_SET = -1
+
+const val LOOPING_ALL = 1
+const val LOOPING_SINGLE = 2
+const val NOT_LOOPING = 3
+
+const val START_SEEKING = 0
+const val END_SEEKING = 1

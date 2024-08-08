@@ -64,7 +64,7 @@ class SongsManager (private val context: Activity) {
                 album = cursor.getString(5),
                 genre = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) cursor.getString(6) else null,
                 artist = cursor.getString(7),
-                thumbnail = getThumbnailFromPath(cursor.getString(2))
+                thumbnail = if(File(thumbnailsDirectory(context), "${cursor.getString(2)}.jpg").exists()) getThumbnailFromPath(cursor.getString(2)) else createSingleThumbnail(saveID = cursor.getString(2), originalFilePath = cursor.getString(1))
             )
 
             protoSongs[songData.id] = songData
@@ -75,36 +75,14 @@ class SongsManager (private val context: Activity) {
         onDone(songsList.value!!)
     }
 
-    private fun updateThumbnails(){
-        if(songsList.value != null) {
-            for (song in songsList.value!!.keys) {
-                if(!File("${song}.jpg").exists()){
-                    val meta = MediaMetadataRetriever()
-                    meta.setDataSource(songsList.value!![song]!!.path)
-                    val picture = meta.embeddedPicture
-                    if(picture != null){
-                        val bitmapThumbnail = BitmapFactory.decodeByteArray(picture, 0, picture.size)
-
-                        bitmapThumbnail.compress(
-                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Bitmap.CompressFormat.WEBP_LOSSY else Bitmap.CompressFormat.WEBP,
-                            100,
-                            FileOutputStream(File(thumbnailsDirectory(context),"${songsList.value!![song]!!.id}.jpg"))
-                        )
-                    }
-                }
-            }
-        }
-
-        removeUnusedThumbnails()
-        update.value = UPDATE_SONGS
-    }
     private fun removeUnusedThumbnails(){
         val logs = getLastLog()
         val allThumbnails = thumbnailsDirectory(context).listFiles()
 
         allThumbnails?.forEach {
-            if(!logs.contains(it.name)){
+            if(!logs.contains(it.name.split(".")[0])){
                 it.delete()
+
             }
         }
     }
@@ -120,7 +98,6 @@ class SongsManager (private val context: Activity) {
         }
 
         if (lastLog.isEmpty() && songsList.value!!.isNotEmpty()) {
-            updateThumbnails()
             setLastLog(currentLog)
             lastLog = getLastLog()
         }
@@ -128,7 +105,7 @@ class SongsManager (private val context: Activity) {
         for (log in lastLog) {
             if (!currentLog.contains(log)) {
                 setLastLog(currentLog)
-                updateThumbnails()
+                removeUnusedThumbnails()
                 break
             }
         }
@@ -177,6 +154,26 @@ class SongsManager (private val context: Activity) {
 
     private fun getThumbnailFromPath(id: String): Bitmap? {
         return if(File(thumbnailsDirectory(context),"${id}.jpg").exists()) BitmapFactory.decodeFile(File(thumbnailsDirectory(context),"${id}.jpg").toString()) else null
+    }
+
+    private fun createSingleThumbnail(saveID: String, originalFilePath:String): Bitmap? {
+        val meta = MediaMetadataRetriever()
+        meta.setDataSource(originalFilePath)
+        val picture = meta.embeddedPicture
+        if (picture != null) {
+            val bitmapThumbnail =
+                BitmapFactory.decodeByteArray(picture, 0, picture.size)
+
+            bitmapThumbnail.compress(
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) Bitmap.CompressFormat.WEBP_LOSSY else Bitmap.CompressFormat.WEBP,
+                80,
+                FileOutputStream(File(thumbnailsDirectory(context), "$saveID.jpg"))
+            )
+
+            return bitmapThumbnail
+        }
+
+        return null
     }
 }
 

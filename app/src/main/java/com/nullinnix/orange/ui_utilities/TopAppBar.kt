@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Search
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -68,6 +69,7 @@ import com.nullinnix.orange.ui.theme.TranslucentOrange
 import com.nullinnix.orange.ui.theme.TranslucentOrangeSemi
 import com.nullinnix.orange.ui.theme.Transparent
 import com.nullinnix.orange.ui.theme.White
+import com.nullinnix.orange.ui.theme.Yellow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -86,7 +88,8 @@ fun TopAppBar(
     onCreatePlaylist: () -> Unit,
     onDeletePlaylist: (String) -> Unit,
     onSearchParametersUpdate: (String?) -> Unit,
-    isSearchingUpdated: (Boolean) -> Unit
+    isSearchingUpdated: (Boolean) -> Unit,
+    onSettings: () -> Unit
 ) {
     var showingPlaylists by remember {
         mutableStateOf(false)
@@ -449,56 +452,70 @@ fun TopAppBar(
                 }
 
                 if (!isSearching && !isMultiSelecting) {
-                    Row(
-                        Modifier
-                            .align(Alignment.End)
-                            .clip(corners(90.dp))
-                            .background(Translucent)
-                            .padding(3.dp), horizontalArrangement = Arrangement.End
-                    ) {
+                    Row (modifier = Modifier.align(Alignment.End), verticalAlignment = Alignment.CenterVertically){
                         Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.clickable {
-                                CoroutineScope(Dispatchers.Main).launch {
-                                    isSearchingUpdated(true)
-                                    delay(500)
-                                    focusRequester.requestFocus()
-                                }
-                            }
+                            Modifier
+                                .clip(corners(90.dp))
+                                .background(Translucent)
+                                .padding(3.dp), horizontalArrangement = Arrangement.End
                         ) {
-                            Text(
-                                text = "Search",
-                                color = White,
-                                fontWeight = FontWeight.ExtraBold,
-                                modifier = Modifier.padding(start = 3.dp)
-                            )
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.clickable {
+                                    CoroutineScope(Dispatchers.Main).launch {
+                                        isSearchingUpdated(true)
+                                        delay(500)
+                                        focusRequester.requestFocus()
+                                    }
+                                }
+                            ) {
+                                Text(
+                                    text = "Search",
+                                    color = White,
+                                    fontWeight = FontWeight.ExtraBold,
+                                    modifier = Modifier.padding(start = 3.dp)
+                                )
 
-                            Image(
-                                imageVector = Icons.Default.Search,
-                                contentDescription = "",
-                                modifier = Modifier.size(23.dp),
-                                colorFilter = ColorFilter.tint(White)
-                            )
+                                Image(
+                                    imageVector = Icons.Default.Search,
+                                    contentDescription = "",
+                                    modifier = Modifier.size(23.dp),
+                                    colorFilter = ColorFilter.tint(White)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
+
+                            Row(verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier
+                                    .clip(corners())
+                                    .background(Translucent)
+                                    .clickable {
+                                        onCreatePlaylist()
+                                    }
+                            ) {
+                                Image(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = "",
+                                    modifier = Modifier
+                                        .size(25.dp)
+                                        .rotate(playlistButtonRotationAnim),
+                                    colorFilter = ColorFilter.tint(Orange)
+                                )
+                            }
                         }
+
                         Spacer(modifier = Modifier.width(10.dp))
 
-                        Row(verticalAlignment = Alignment.CenterVertically,
+                        Image(
+                            imageVector = Icons.Default.Settings,
+                            contentDescription = "",
                             modifier = Modifier
-                                .clip(corners())
-                                .background(Translucent)
+                                .size(25.dp)
                                 .clickable {
-                                    onCreatePlaylist()
-                                }
-                        ) {
-                            Image(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = "",
-                                modifier = Modifier
-                                    .size(25.dp)
-                                    .rotate(playlistButtonRotationAnim),
-                                colorFilter = ColorFilter.tint(Orange)
-                            )
-                        }
+                                    onSettings()
+                                },
+                            colorFilter = ColorFilter.tint(Orange)
+                        )
                     }
                 }
             }

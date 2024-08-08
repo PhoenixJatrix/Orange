@@ -2,7 +2,9 @@ package com.nullinnix.orange.ui_utilities
 
 import android.util.Log
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
@@ -24,18 +26,23 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -66,6 +73,7 @@ import com.nullinnix.orange.misc.getPercentage
 import com.nullinnix.orange.misc.noGleamTaps
 import com.nullinnix.orange.misc.screenWidth
 import com.nullinnix.orange.misc.sortBy
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PLAYING
 import com.nullinnix.orange.song_managing.getSongDataFromIDs
 import com.nullinnix.orange.ui.theme.Black
 import com.nullinnix.orange.ui.theme.LighterGray
@@ -77,19 +85,23 @@ import com.nullinnix.orange.ui.theme.Translucent
 import com.nullinnix.orange.ui.theme.TranslucentOrange
 import com.nullinnix.orange.ui.theme.TranslucentOrangeSemi
 import com.nullinnix.orange.ui.theme.White
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlin.random.Random
 
 @Composable
 fun SongsList(
     songIDs: List<String>,
     allDeviceSongs: Map<String, SongData>,
-    currentlyPlaying: Int,
+    currentSong: SongData?,
     isMiniPlayerVisible: Boolean,
     isMultiSelecting: Boolean,
     selectedSongs: List<String>,
     isSearching: Boolean,
     currentPlaylist: Playlist,
     currentSongSortType: Int,
-    onAction: (Int, String) -> Unit,
+    mediaPlayerState: Int,
+    onAction: (action:Int, id:String, openPlayer:Boolean) -> Unit,
     onSort: (Int, List<String>?) -> Unit
 ) {
     var currentSortList by remember {
@@ -111,6 +123,10 @@ fun SongsList(
         showSortList = true
     }
 
+    val lazyListState = rememberLazyListState()
+
+    val coroutine = rememberCoroutineScope()
+
     Box(modifier = Modifier.fillMaxSize()) {
         LazyColumn(
             Modifier
@@ -124,23 +140,26 @@ fun SongsList(
             }
 
             items(songIDs.size) { index ->
-                SongView(
-                    songData = allDeviceSongs[songIDs[index]]!!,
-                    currentlyPlaying = currentlyPlaying,
-                    id = index,
-                    isMultiSelecting = isMultiSelecting,
-                    isSelected = selectedSongs.contains(songIDs[index])
-                ) { action, id ->
-                    onAction(action, id)
-                }
+                if(allDeviceSongs[songIDs[index]] != null) {
+                    SongView(
+                        songData = allDeviceSongs[songIDs[index]]!!,
+                        currentSong = currentSong,
+                        id = index,
+                        isMultiSelecting = isMultiSelecting,
+                        isSelected = selectedSongs.contains(songIDs[index]),
+                        mediaPlayerState = mediaPlayerState
+                    ) { action, id, openPlayer ->
+                        onAction(action, id, openPlayer)
+                    }
 
-                if (index != songIDs.size - 1) {
-                    Spacer(modifier = Modifier.height(5.dp))
+                    if (index != songIDs.size - 1) {
+                        Spacer(modifier = Modifier.height(5.dp))
+                    }
                 }
             }
 
             item {
-                Spacer(modifier = Modifier.height(if (isMultiSelecting || isMiniPlayerVisible) 100.dp else 50.dp))
+                Spacer(modifier = Modifier.height(if (isMultiSelecting || isMiniPlayerVisible) 120.dp else 70.dp))
             }
         }
 
@@ -176,6 +195,12 @@ fun SongsList(
                     ) {
                         onSort(VIEWING_GENRE, null)
                         sortBy(VIEWING_GENRE)
+
+                        if(currentSortList.isNotEmpty()){
+                            coroutine.launch {
+                                lazyListState.scrollToItem(0)
+                            }
+                        }
                     }
 
                     SongsViewSorter(
@@ -185,6 +210,12 @@ fun SongsList(
                     ) {
                         onSort(VIEWING_ALBUMS, null)
                         sortBy(VIEWING_ALBUMS)
+
+                        if(currentSortList.isNotEmpty()){
+                            coroutine.launch {
+                                lazyListState.scrollToItem(0)
+                            }
+                        }
                     }
 
                     SongsViewSorter(
@@ -194,6 +225,12 @@ fun SongsList(
                     ) {
                         onSort(VIEWING_ARTISTS, null)
                         sortBy(VIEWING_ARTISTS)
+
+                        if(currentSortList.isNotEmpty()){
+                            coroutine.launch {
+                                lazyListState.scrollToItem(0)
+                            }
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(10.dp))
@@ -205,7 +242,6 @@ fun SongsList(
                 modifier = Modifier
                     .fillMaxWidth()
                     .fillMaxHeight()
-
                     .animateContentSize()
                     .padding(top = if (isMultiSelecting && isSearching) 180.dp else if (isSearching) 150.dp else 125.dp)
                     .noGleamTaps {
@@ -221,7 +257,7 @@ fun SongsList(
                             Black.blue,
                             0.91f
                         )
-                    ), horizontalAlignment = Alignment.CenterHorizontally
+                    ), horizontalAlignment = Alignment.CenterHorizontally, state = lazyListState
             ) {
                 item {
                     Spacer(modifier = Modifier.height(15.dp))
@@ -238,7 +274,7 @@ fun SongsList(
                                 }
                             ) {
                                 Box(modifier = Modifier
-                                    .width(50.dp)
+                                    .width(80.dp)
                                     .background(Red)) {
                                     val availableThumbnail = getAnyAvailableAlbumCover(
                                         allSongsInPlaylist = getSongDataFromIDs(
@@ -257,38 +293,36 @@ fun SongsList(
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.width(5.dp))
-
                                 Column(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .fillMaxHeight()
-                                        .padding(5.dp), verticalArrangement = Arrangement.SpaceAround
+                                        .padding(start = 3.dp), verticalArrangement = Arrangement.SpaceAround
                                 ) {
                                     Text(
                                         text = buildAnnotatedString {
-                                            withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold)) {
-                                                append("Number of songs ".uppercase() + if(currentSongSortType == VIEWING_GENRE) "in Genre".uppercase() else if(currentSongSortType == VIEWING_ALBUMS) "in Album:".uppercase() else "by Artist:".uppercase())
+                                            withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)) {
+                                                append("Number of songs ".uppercase() + if(currentSongSortType == VIEWING_GENRE) "in Genre:".uppercase() else if(currentSongSortType == VIEWING_ALBUMS) "in Album:".uppercase() else "by Artist:".uppercase())
                                             }
 
                                             append(" " + sortedType.value.size)
                                         },
-                                        color = White, overflow = TextOverflow.Ellipsis
+                                        color = White, overflow = TextOverflow.Ellipsis, fontSize = 14.sp
                                     )
 
                                     Text(
                                         text = buildAnnotatedString {
-                                            withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold)) {
+                                            withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)) {
                                                 append(if(currentSongSortType == VIEWING_GENRE) "GENRE:" else if(currentSongSortType == VIEWING_ALBUMS) "ALBUM:" else "ARTIST:")
                                             }
 
                                             append(" " + sortedType.key)
                                         },
-                                        color = White, overflow = TextOverflow.Ellipsis
+                                        color = White, overflow = TextOverflow.Ellipsis, fontSize = 14.sp
                                     )
 
                                     Text(text = buildAnnotatedString {
-                                        withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold)) {
+                                        withStyle(style = SpanStyle(fontWeight = FontWeight.ExtraBold, fontSize = 11.sp)) {
                                             append("SONGS: ")
                                         }
 
@@ -324,7 +358,7 @@ fun SongsList(
                                                 }
                                             }
                                         }
-                                    }, color = White, overflow = TextOverflow.Ellipsis)
+                                    }, color = White, overflow = TextOverflow.Ellipsis, fontSize = 14.sp)
                                 }
                             }
 
@@ -348,28 +382,54 @@ fun SongsList(
 @Composable
 fun SongView(
     songData: SongData,
-    currentlyPlaying: Int,
+    currentSong: SongData?,
+    mediaPlayerState: Int,
     id: Int,
     isMultiSelecting: Boolean,
     isSelected: Boolean,
-    onAction: (Int, String) -> Unit
+    onAction: (action:Int, id:String, openPlayer:Boolean) -> Unit
 ) {
     var isFullyShown by remember {
         mutableStateOf(false)
     }
 
-    val multiSelectingPadding by animateDpAsState(targetValue = if(isMultiSelecting) 35.dp else 0.dp, label = "")
-    val checkMarkSize by animateDpAsState(targetValue = if(isSelected) 15.dp else 0.dp, label = "", animationSpec = tween(300))
+    var animateSize by remember {
+        mutableStateOf(false)
+    }
+
+    if(currentSong != null) {
+        LaunchedEffect(key1 = currentSong.id == songData.id) {
+            if (currentSong.id == songData.id) {
+                animateSize = true
+                delay(300)
+                animateSize = false
+            }
+        }
+    }
+
+    val height by animateDpAsState(targetValue = if(!animateSize) 50.dp else 80.dp, label = "", animationSpec = tween(500))
+
+    val multiSelectingPadding by animateDpAsState(
+        targetValue = if (isMultiSelecting) 35.dp else 0.dp,
+        label = ""
+    )
+    val checkMarkSize by animateDpAsState(
+        targetValue = if (isSelected) 15.dp else 0.dp,
+        label = "",
+        animationSpec = tween(300)
+    )
+
+    val isCurrentPlaying = currentSong != null && currentSong.id == songData.id
 
     Box(modifier = Modifier.fillMaxWidth(), contentAlignment = Alignment.Center) {
-        if(isMultiSelecting && multiSelectingPadding == 35.dp) {
+        if (isMultiSelecting && multiSelectingPadding == 35.dp) {
             Box(
                 modifier = Modifier
                     .size(25.dp)
                     .align(Alignment.CenterStart)
                     .clip(corners(90.dp))
                     .clickable {
-                        onAction(MULTI_SELECT_SONGS, songData.id)
+                        onAction(MULTI_SELECT_SONGS, songData.id, false)
                     }
                     .border(
                         width = if (isSelected) 3.dp else 2.dp,
@@ -388,11 +448,31 @@ fun SongView(
                 }
             }
         }
+        if(songData.thumbnail != null && isCurrentPlaying) {
+            Row(
+                modifier = Modifier
+                    .width(getPercentage(screenWidth(), if (!isMultiSelecting) 90 else 100).dp)
+                    .height(if (isFullyShown && !isMultiSelecting) 100.dp else height)
+                    .align(Alignment.CenterStart)
+                    .clip(corners(5.dp))
+                    .padding(start = multiSelectingPadding)
+                    .clip(corners(5.dp))
+                    .blur(200.dp)
+            ) {
+                Image(
+                    bitmap = songData.thumbnail.asImageBitmap(),
+                    contentDescription = "",
+                    modifier = Modifier
+                        .fillMaxSize(),
+                    contentScale = ContentScale.FillBounds
+                )
+            }
+        }
 
         Row(
             modifier = Modifier
                 .width(getPercentage(screenWidth(), if (!isMultiSelecting) 90 else 100).dp)
-                .height(if (isFullyShown && !isMultiSelecting) 100.dp else 50.dp)
+                .height(if (isFullyShown && !isMultiSelecting) 100.dp else height)
                 .align(Alignment.CenterStart)
                 .clip(corners(5.dp))
                 .padding(start = multiSelectingPadding)
@@ -406,31 +486,32 @@ fun SongView(
                     },
                     onLongClick = {
                         isFullyShown = false
-                        onAction(MULTI_SELECT_SONGS, songData.id)
+                        onAction(MULTI_SELECT_SONGS, songData.id, false)
                     },
                     onClick = {
                         if (!isMultiSelecting) {
-                            onAction(PLAY_SONG, songData.id)
+                            onAction(PLAY_SONG, songData.id, true)
                         } else {
                             isFullyShown = false
-                            onAction(MULTI_SELECT_SONGS, songData.id)
+                            onAction(MULTI_SELECT_SONGS, songData.id, false)
                         }
                     }
                 )
                 .padding(end = 3.dp)
                 .animateContentSize(), verticalAlignment = Alignment.CenterVertically
         ) {
-            if(songData.thumbnail != null) {
+            if (songData.thumbnail != null) {
                 Image(
                     bitmap = songData.thumbnail.asImageBitmap(),
                     contentDescription = "",
                     modifier = Modifier
-                        .size(50.dp),
+                        .height(if (isFullyShown && !isMultiSelecting) 100.dp else height)
+                        .width(60.dp),
                     contentScale = ContentScale.Crop
                 )
             }
 
-            Spacer(modifier = Modifier.width(5.dp))
+            Spacer(modifier = Modifier.width(3.dp))
 
             Column {
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
@@ -439,16 +520,16 @@ fun SongView(
                         modifier = Modifier.fillMaxWidth(0.85f),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        fontWeight = FontWeight.Medium,
-                        color = White
+                        fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
+                        color = if(isCurrentPlaying) Orange else White
                     )
 
                     Text(
                         text = durationMillisToStringMinutes(songData.duration),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        fontWeight = FontWeight.Medium,
-                        color = White
+                        fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
+                        color = if(isCurrentPlaying) Orange else White
                     )
                 }
 
@@ -457,8 +538,8 @@ fun SongView(
                     modifier = Modifier.fillMaxWidth(0.85f),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    fontWeight = FontWeight.Medium,
-                    color = LighterGray,
+                    fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
+                    color = if(isCurrentPlaying) Orange else LighterGray,
                     fontSize = 14.sp
                 )
 
@@ -467,34 +548,44 @@ fun SongView(
                         text = "Album: ${songData.album}",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        fontWeight = FontWeight.Medium,
-                        color = LighterGray,
+                        fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
+                        color = if(isCurrentPlaying) Orange else LighterGray,
                         fontSize = 14.sp
                     )
                     Text(
                         text = "Genre: ${songData.genre ?: "Unknown Genre"}",
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
-                        fontWeight = FontWeight.Medium,
-                        color = LighterGray,
+                        fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
+                        color = if(isCurrentPlaying) Orange else LighterGray,
                         fontSize = 14.sp
                     )
                 }
             }
         }
 
-        if(!isMultiSelecting){
-            Image(
-                imageVector = Icons.Default.PlayArrow, contentDescription = "", modifier = Modifier
-                    .align(Alignment.CenterEnd)
-                    .clip(
-                        corners(90.dp)
+        if (!isMultiSelecting) {
+            Box(modifier = Modifier
+                .align(Alignment.CenterEnd)
+                .clickable {
+                    onAction(PLAY_SONG, songData.id, false)
+                }
+            ) {
+                if (isCurrentPlaying && mediaPlayerState == PLAYING) {
+                    PlayingIndicator()
+                } else {
+                    Image(
+                        imageVector = Icons.Default.PlayArrow,
+                        contentDescription = "",
+                        modifier = Modifier
+                            .clip(
+                                corners(90.dp)
+                            )
+                            .size(35.dp),
+                        colorFilter = ColorFilter.tint(Orange)
                     )
-                    .size(35.dp)
-                    .clickable {
-
-                    }, colorFilter = ColorFilter.tint(Orange)
-            )
+                }
+            }
         }
     }
 }
@@ -550,5 +641,53 @@ fun SongsViewSorter(currentSelected: Int, id: Int, label: String, onSelect: (Int
                 )
             }
         }
+    }
+}
+
+@Composable
+fun PlayingIndicator() {
+    Row(modifier = Modifier
+        .size(23.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween){
+        LoneIndicator()
+        LoneIndicator()
+        LoneIndicator()
+    }
+}
+
+@Composable
+fun LoneIndicator() {
+    var shrink by remember {
+        mutableStateOf(true)
+    }
+
+    var firstComposition by remember {
+        mutableStateOf(true)
+    }
+
+    var update by remember {
+        mutableIntStateOf(0)
+    }
+
+    val indicatorHeight by animateDpAsState(targetValue = if(shrink) Random.nextInt(0, 10).dp else Random.nextInt(5, 25).dp, label = "", animationSpec = spring(Spring.DampingRatioMediumBouncy))
+
+    LaunchedEffect(key1 = update) {
+        if(firstComposition){
+            delay(Random.nextLong(100, 1000))
+            firstComposition = false
+        }
+
+        shrink = true
+
+        delay(Random.nextLong(400, 700))
+
+        shrink = false
+
+        delay(Random.nextLong(400, 700))
+
+        update += 1
+    }
+
+    Canvas(modifier = Modifier.height(indicatorHeight)) {
+        drawLine(color = if(indicatorHeight.value.toInt() in 5..12) LighterGray else White, start = Offset.Zero, end = Offset(0f, this.size.height), strokeWidth = 20f, cap = StrokeCap.Round)
     }
 }
