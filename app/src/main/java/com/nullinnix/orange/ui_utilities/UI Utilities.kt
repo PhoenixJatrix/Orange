@@ -1,6 +1,8 @@
 package com.nullinnix.orange.ui_utilities
 
+import android.util.Log
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -16,7 +18,6 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -34,11 +35,14 @@ import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.input.pointer.pointerInput
@@ -48,8 +52,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import com.nullinnix.orange.ADDED_TO_PLAYLIST
 import com.nullinnix.orange.CANCEL_SELECTION
@@ -79,12 +85,13 @@ import com.nullinnix.orange.song_managing.LIKED_SONGS
 import com.nullinnix.orange.song_managing.MediaPlayerState
 import com.nullinnix.orange.song_managing.PlayerClickActions
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SHOW_PLAYER
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.TOGGLE_TIME_REMAINING
 import com.nullinnix.orange.song_managing.PlaylistManager
-import com.nullinnix.orange.ui.theme.Black
 import com.nullinnix.orange.ui.theme.DarkerGray
 import com.nullinnix.orange.ui.theme.LighterGray
 import com.nullinnix.orange.ui.theme.MildBlack
 import com.nullinnix.orange.ui.theme.MildGray
+import com.nullinnix.orange.ui.theme.MildTranslucentBlack
 import com.nullinnix.orange.ui.theme.MilderGray
 import com.nullinnix.orange.ui.theme.Opaque
 import com.nullinnix.orange.ui.theme.Orange
@@ -94,6 +101,8 @@ import com.nullinnix.orange.ui.theme.TranslucentOrange
 import com.nullinnix.orange.ui.theme.TranslucentOrangeSemi
 import com.nullinnix.orange.ui.theme.Transparent
 import com.nullinnix.orange.ui.theme.White
+import kotlinx.coroutines.delay
+import kotlin.time.Duration.Companion.days
 
 @Composable
 fun Dialog(
@@ -318,16 +327,14 @@ fun MultiSelectItem(label: String, enabled: Boolean = true, onClick: () -> Unit)
 fun MiniPlayer(
     modifier: Modifier,
     mediaPlayerState: Int,
-    allSongsInPlaylist: Map<String, SongData>,
-    currentPlaying: SongData,
-    currentPlaylist: Playlist,
+    currentSong: SongData,
     currentPosition: Int,
     isLiked: Boolean,
     isShuffling: Boolean,
     onSongEndAction: Int,
+    showTimeRemaining: Boolean,
     onAction: (Int) -> Unit,
-    onSeek: (action: Int, seekPosition: Int?) -> Unit,
-    onClose: () -> Unit
+    onSeek: (action: Int, seekPosition: Int?) -> Unit
 ) {
     var launched by remember {
         mutableStateOf(false)
@@ -341,21 +348,29 @@ fun MiniPlayer(
 
     Box(modifier = modifier
         .width(width)
-        .height(200.dp)
-        .background(Opaque)
-        .clickable {
-            onAction(SHOW_PLAYER)
-        }
+        .height(250.dp)
+        .animateContentSize()
     ) {
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(50.dp)
+                .align(Alignment.TopCenter)
+                .background(brush = Brush.verticalGradient(listOf(Transparent, MildTranslucentBlack)))
+        ) {
 
-        if (currentPlaying.thumbnail != null) {
+        }
+
+        if (currentSong.thumbnail != null) {
             Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .blur(70.dp)
+                    .fillMaxWidth()
+                    .height(200.dp)
+                    .align(Alignment.BottomCenter)
+                    .blur(100.dp)
             ) {
                 Image(
-                    bitmap = currentPlaying.thumbnail.asImageBitmap(),
+                    bitmap = currentSong.thumbnail.asImageBitmap(),
                     contentDescription = "",
                     modifier = Modifier.fillMaxSize(),
                     contentScale = ContentScale.FillBounds
@@ -369,110 +384,23 @@ fun MiniPlayer(
             }
         }
 
-        Column()
-        {
-            Row(
-                Modifier
-                    .fillMaxWidth(), horizontalArrangement = Arrangement.Center
-            ) {
-                Slider(
-                    currentValue = currentPosition,
-                    minValue = 0,
-                    maxValue = currentPlaying.duration.toInt(),
-                    onStartDrag = {
-                        onSeek(START_SEEKING, null)
-                    },
-                    onDragging = {
-                        onSeek(START_SEEKING, it)
-                    },
-                    onStopDrag = {
-                        onSeek(END_SEEKING, it)
-                    }
-                )
+        MediaControlButtons(
+            modifier = Modifier.align(Alignment.BottomCenter),
+            mediaPlayerState = mediaPlayerState,
+            currentSong = currentSong,
+            currentPosition = currentPosition,
+            isLiked = isLiked,
+            isShuffling = isShuffling,
+            onSongEndAction = onSongEndAction,
+            showTimeRemaining = showTimeRemaining,
+            showTitle = true,
+            onAction = {
+                onAction(it)
+            },
+            onSeek = {action: Int, seekPosition: Int? ->
+                onSeek(action, seekPosition)
             }
-
-            Spacer(modifier = Modifier.height(10.dp))
-
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 15.dp), horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.skip_previous),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clickable {
-                            onAction(PlayerClickActions.SKIP_PREVIOUS)
-                        },
-                    colorFilter = ColorFilter.tint(White)
-                )
-
-                Image(
-                    painter = painterResource(id = if (mediaPlayerState == MediaPlayerState.PLAYING) R.drawable.pause else R.drawable.play),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clickable {
-                            onAction(PlayerClickActions.TOGGLE_PLAY)
-                        },
-                    colorFilter = ColorFilter.tint(White)
-                )
-
-                Image(
-                    painter = painterResource(id = R.drawable.skip_next),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clickable {
-                            onAction(PlayerClickActions.SKIP_NEXT)
-                        },
-                    colorFilter = ColorFilter.tint(White)
-                )
-            }
-
-            Spacer(modifier = Modifier.height(25.dp))
-
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 15.dp), horizontalArrangement = Arrangement.SpaceAround
-            ) {
-                Image(
-                    painter = painterResource(id = R.drawable.shuffle),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clickable {
-                            onAction(PlayerClickActions.TOGGLE_SHUFFLE)
-                        },
-                    colorFilter = ColorFilter.tint(White)
-                )
-
-                Image(
-                    imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                    contentDescription = "",
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clickable {
-                            onAction(PlayerClickActions.TOGGLE_LIKED)
-                        },
-                    colorFilter = ColorFilter.tint(if (isLiked) White else Black)
-                )
-
-                Image(
-                    painter = painterResource(id = if (onSongEndAction == LOOPING_ALL || onSongEndAction == NOT_LOOPING) R.drawable.looping_all else R.drawable.looping_single),
-                    contentDescription = "",
-                    modifier = Modifier
-                        .size(30.dp)
-                        .clickable {
-                            onAction(PlayerClickActions.TOGGLE_SONG_ON_END_ACTION)
-                        },
-                    colorFilter = ColorFilter.tint(if (onSongEndAction == NOT_LOOPING) Translucent else White)
-                )
-            }
-        }
+        )
     }
 }
 
@@ -649,13 +577,14 @@ fun PlaylistView(
 @Composable
 fun Slider(
     currentValue: Int,
-    minValue: Int,
     maxValue: Int,
     onStartDrag: () -> Unit,
     onDragging: (Int) -> Unit,
-    onStopDrag: (Int) -> Unit
+    onStopDrag: (Float) -> Unit
 ) {
     val width = screenWidth()
+
+    val minValue = 0
 
     val sliderWidth = getPercentage(width, 85)
 
@@ -673,30 +602,25 @@ fun Slider(
         )
     }
 
-    val maxOffset = sliderWidth.dp
-    val minOffset = 0.dp
-
-    val tickOffset =
-        if (positionDp >= maxOffset) maxOffset else if (positionDp <= minOffset) minOffset else positionDp
-
     var percentage by remember {
-        mutableIntStateOf(getPercent(sliderWidth, positionDp.value.toInt()))
+        mutableFloatStateOf(getPercent(sliderWidth.toFloat(), positionDp.value))
     }
 
     var percentageCovered by remember {
-        mutableIntStateOf(if (percentage < 0) minValue else if (percentage >= 100) 100 else if (percentage == 0) minValue else percentage)
+        mutableStateOf(if (percentage < 0) minValue else if (percentage >= 100) 100 else if (percentage == 0f) minValue else percentage)
     }
 
     var onDrag by remember {
         mutableStateOf(false)
     }
 
-    val tickSize = if (!onDrag) 12.dp else 15.dp
+    val currentMaxValue by rememberUpdatedState(newValue = maxValue)
+    val currentPosition by rememberUpdatedState(newValue = currentValue)
 
     val heightAnim by animateDpAsState(
-        targetValue = if (onDrag) 15.dp else 7.dp,
+        targetValue = if (onDrag) 20.dp else 10.dp,
         label = "",
-        animationSpec = tween(1000)
+        animationSpec = tween(500)
     )
 
     val positionAnim by animateDpAsState(
@@ -705,33 +629,27 @@ fun Slider(
         animationSpec = tween(100)
     )
 
-    val tickOffsetAnim by animateDpAsState(
-        targetValue = tickOffset,
-        label = "",
-        animationSpec = tween(100)
-    )
-
-    LaunchedEffect(key1 = currentValue) {
+    LaunchedEffect(key1 = currentPosition) {
         if (!onDrag) {
             with(density) {
-                positionPixels = getPercentage(
-                    sliderWidth.dp.toPx().toInt() + tickSize.toPx().toInt(),
-                    getPercent(maxValue, currentValue)
-                ).toFloat()
-                positionDp = with(density) {
-                    if (positionPixels.toDp() < 0.dp) 0.dp else if (positionPixels.toDp() > sliderWidth.dp) sliderWidth.dp else positionPixels.toDp()
-                }
-                percentage = getPercent(sliderWidth, positionDp.value.toInt())
-                percentageCovered =
-                    if (percentage < 0) minValue else if (percentage >= 100) 100 else if (percentage == 0) minValue else percentage
+                positionPixels = getPercentage(sliderWidth.dp.toPx(), getPercent(currentMaxValue.toFloat(), currentPosition.toFloat()))
+
+                positionDp = if (positionPixels.toDp() < 0.dp) 0.dp else if (positionPixels.toDp() > sliderWidth.dp) sliderWidth.dp else positionPixels.toDp()
+
+                percentage = getPercent(sliderWidth.toFloat(), positionDp.value)
+
+                percentageCovered = if (percentage < 0) minValue else if (percentage >= 100) 100 else if (percentage == 0f) minValue else percentage
             }
-        }
+       }
     }
 
     Box(
         modifier = Modifier
             .width(sliderWidth.dp)
-            .height(45.dp), contentAlignment = Alignment.CenterStart
+            .height(heightAnim)
+            .clip(corners(90.dp))
+            .clipToBounds()
+        , contentAlignment = Alignment.CenterStart
     ) {
         //Slide bar
         Row(
@@ -744,42 +662,55 @@ fun Slider(
                     detectTapGestures(
                         onPress = {
                             positionPixels = it.x
+
+                            Log.d("", "Slider old: $width $positionPixels")
+
                             positionDp = with(density) {
                                 if (positionPixels.toDp() < 0.dp) 0.dp else if (positionPixels.toDp() > sliderWidth.dp) sliderWidth.dp else positionPixels.toDp()
                             }
-                            percentage = getPercent(sliderWidth, positionDp.value.toInt())
-                            percentageCovered =
-                                if (percentage < 0) minValue else if (percentage >= 100) 100 else if (percentage == 0) minValue else percentage
 
-                            onStopDrag(getPercentage(maxValue, percentageCovered))
+                            percentage = getPercent(sliderWidth.toFloat(), positionDp.value)
+
+                            percentageCovered =
+                                if (percentage < 0) minValue else if (percentage >= 100) 100 else if (percentage == 0f) minValue else percentage
+                            onStopDrag(
+                                percentageCovered.toFloat()
+                            )
                         }
                     )
                 }
-                .pointerInput(1) {
+                .pointerInput(Unit) {
                     detectDragGestures(
                         onDragStart = {
-
+                            onDrag = true
                         },
                         onDragEnd = {
                             onDrag = false
-                            onStopDrag(getPercentage(maxValue, percentageCovered))
-                        },
-                        onDragCancel = {
-
+                            onStopDrag(
+                                percentageCovered.toFloat()
+                            )
                         },
                         onDrag = { change, _ ->
+                            onDrag = true
+
                             onStartDrag()
                             positionPixels = change.position.x
+
                             positionDp = with(density) {
                                 if (positionPixels.toDp() < 0.dp) 0.dp else if (positionPixels.toDp() > sliderWidth.dp) sliderWidth.dp else positionPixels.toDp()
                             }
-                            percentage = getPercent(sliderWidth, positionDp.value.toInt())
+
+                            percentage = getPercent(sliderWidth.toFloat(), positionDp.value)
+
                             percentageCovered =
-                                if (percentage < 0) minValue else if (percentage >= 100) 100 else if (percentage == 0) minValue else percentage
+                                if (percentage < 0) minValue else if (percentage >= 100) 100 else if (percentage == 0f) minValue else percentage
 
-                            onDragging(getPercentage(maxValue, percentageCovered))
-
-                            onDrag = true
+                            onDragging(
+                                getPercentage(
+                                    currentMaxValue.toFloat(),
+                                    percentageCovered.toFloat()
+                                ).toInt()
+                            )
                         }
                     )
                 }
@@ -791,37 +722,216 @@ fun Slider(
             Modifier
                 .width(positionAnim)
                 .height(heightAnim)
-                .clip(corners(topStart = 90.dp, bottomStart = 90.dp, topEnd = if(onDrag) 0.dp else 90.dp, bottomEnd = if(onDrag) 0.dp else 90.dp))
+                .clip(corners(
+                    topStart = 90.dp,
+                    bottomStart = 90.dp,
+                    topEnd = 0.dp,
+                    bottomEnd = 0.dp
+                ))
                 .background(
                     translucentColor(
                         Orange,
                         if (getPercentage(
                                 1f,
-                                getPercent(maxValue, currentValue).toFloat()
+                                getPercent(currentMaxValue, currentPosition).toFloat()
                             ) <= 0.5f
-                        ) 0.5f else getPercentage(1f, getPercent(maxValue, currentValue).toFloat())
+                        ) 0.5f else getPercentage(
+                            1f,
+                            getPercent(currentMaxValue, currentPosition).toFloat()
+                        )
                     )
                 )
         ) {
 
         }
+    }
+}
 
-        Box(
-            modifier = Modifier.offset(
-                x = (tickOffsetAnim - (tickSize / 2)) - 15.dp,
-                y = if (onDrag) (-24).dp else (-25).dp
-            )
-        ) {
-            if (onDrag) {
-                Text(
-                    text = durationMillisToStringMinutes(
-                        getPercentage(
-                            maxValue,
-                            percentage
-                        ).toLong()
-                    ), color = White
-                )
+@Composable
+fun MediaControlButtons(
+    modifier: Modifier,
+    mediaPlayerState: Int,
+    currentSong: SongData,
+    currentPosition: Int,
+    isLiked: Boolean,
+    isShuffling: Boolean,
+    onSongEndAction: Int,
+    showTimeRemaining: Boolean,
+    showTitle: Boolean,
+    onAction: (Int) -> Unit,
+    onSeek: (action: Int, seekPosition: Int?) -> Unit
+) {
+    var showSlider by remember{
+        mutableStateOf(true)
+    }
+
+    LaunchedEffect(key1 = currentSong) {
+        showSlider = false
+        delay(50)
+        showSlider = true
+    }
+
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(200.dp)
+            .padding(horizontal = 5.dp)
+            .noGleamTaps {
+                onAction(SHOW_PLAYER)
             }
+    ) {
+        if(showTitle) {
+            Text(
+                text = currentSong.title,
+                color = White,
+                fontWeight = FontWeight.Bold,
+                modifier = Modifier.fillMaxWidth(),
+                textAlign = TextAlign.Center,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                fontSize = 14.sp
+            )
         }
+
+        Row (
+            Modifier
+                .fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically
+        ){
+            Text(
+                text = durationMillisToStringMinutes(currentPosition.toLong()),
+                color = White,
+                fontWeight = FontWeight.Bold,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                fontSize = 14.sp
+            )
+
+            Text(
+                text = if(showTimeRemaining) "-" + durationMillisToStringMinutes(currentSong.duration - currentPosition) else durationMillisToStringMinutes(currentSong.duration),
+                color = White,
+                fontWeight = FontWeight.Bold,
+                overflow = TextOverflow.Ellipsis,
+                maxLines = 1,
+                modifier = Modifier.noGleamTaps {
+                    onAction(TOGGLE_TIME_REMAINING)
+                },
+                fontSize = 14.sp
+            )
+        }
+
+        Column(
+            Modifier
+                .fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Spacer(modifier = Modifier.height(10.dp))
+
+            if(showSlider) {
+                Slider(
+                    currentValue = currentPosition,
+                    maxValue = currentSong.duration.toInt(),
+                    onStartDrag = {
+                        onSeek(START_SEEKING, null)
+                    },
+                    onDragging = {
+                        onSeek(START_SEEKING, it)
+                    },
+                    onStopDrag = {
+                        onSeek(
+                            END_SEEKING,
+                            getPercentage(currentSong.duration.toFloat(), it).toInt()
+                        )
+                    }
+                )
+            } else {
+                Spacer(modifier = Modifier.height(10.dp))
+            }
+
+            Spacer(modifier = Modifier.height(10.dp))
+        }
+
+        Spacer(modifier = Modifier.height(10.dp))
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp), horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.skip_previous),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(30.dp)
+                    .clickable {
+                        onAction(PlayerClickActions.SKIP_PREVIOUS)
+                    },
+                colorFilter = ColorFilter.tint(White)
+            )
+
+            Image(
+                painter = painterResource(id = if (mediaPlayerState == MediaPlayerState.PLAYING) R.drawable.pause else R.drawable.play),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(30.dp)
+                    .clickable {
+                        onAction(PlayerClickActions.TOGGLE_PLAY)
+                    },
+                colorFilter = ColorFilter.tint(White)
+            )
+
+            Image(
+                painter = painterResource(id = R.drawable.skip_next),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(30.dp)
+                    .clickable {
+                        onAction(PlayerClickActions.SKIP_NEXT)
+                    },
+                colorFilter = ColorFilter.tint(White)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(25.dp))
+
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 15.dp), horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.shuffle),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(30.dp)
+                    .clickable {
+                        onAction(PlayerClickActions.TOGGLE_SHUFFLE)
+                    },
+                colorFilter = ColorFilter.tint(if(isShuffling) White else Translucent)
+            )
+
+            Image(
+                imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                contentDescription = "",
+                modifier = Modifier
+                    .size(30.dp)
+                    .clickable {
+                        onAction(PlayerClickActions.TOGGLE_LIKED)
+                    },
+                colorFilter = ColorFilter.tint(White)
+            )
+
+            Image(
+                painter = painterResource(id = if (onSongEndAction == LOOPING_ALL || onSongEndAction == NOT_LOOPING) R.drawable.looping_all else R.drawable.looping_single),
+                contentDescription = "",
+                modifier = Modifier
+                    .size(30.dp)
+                    .clickable {
+                        onAction(PlayerClickActions.TOGGLE_SONG_ON_END_ACTION)
+                    },
+                colorFilter = ColorFilter.tint(if (onSongEndAction == NOT_LOOPING) Translucent else White)
+            )
+        }
+
+        Spacer(modifier = Modifier.height(55.dp))
     }
 }

@@ -1,6 +1,7 @@
 package com.nullinnix.orange.ui_utilities
 
 import android.util.Log
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
@@ -73,6 +74,7 @@ import com.nullinnix.orange.misc.getPercentage
 import com.nullinnix.orange.misc.noGleamTaps
 import com.nullinnix.orange.misc.screenWidth
 import com.nullinnix.orange.misc.sortBy
+import com.nullinnix.orange.song_managing.ALL_SONGS
 import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PLAYING
 import com.nullinnix.orange.song_managing.getSongDataFromIDs
 import com.nullinnix.orange.ui.theme.Black
@@ -94,6 +96,7 @@ fun SongsList(
     songIDs: List<String>,
     allDeviceSongs: Map<String, SongData>,
     currentSong: SongData?,
+    currentPosition: Int,
     isMiniPlayerVisible: Boolean,
     isMultiSelecting: Boolean,
     selectedSongs: List<String>,
@@ -123,7 +126,13 @@ fun SongsList(
         showSortList = true
     }
 
+    BackHandler(currentSongSortType != VIEWING_ALL) {
+        onSort(VIEWING_ALL, null)
+        sortBy(VIEWING_ALL)
+    }
+
     val lazyListState = rememberLazyListState()
+    val songsLazyListState = rememberLazyListState()
 
     val coroutine = rememberCoroutineScope()
 
@@ -131,19 +140,18 @@ fun SongsList(
         LazyColumn(
             Modifier
                 .fillMaxSize()
-                .padding(
-                    5.dp
-                )
+                .padding(5.dp), state = songsLazyListState
         ) {
-            item {
-                Spacer(modifier = Modifier.height(if (isMultiSelecting && isSearching) 150.dp else if (isSearching) 120.dp else if(isMultiSelecting) 100.dp else 135.dp))
-            }
-
             items(songIDs.size) { index ->
                 if(allDeviceSongs[songIDs[index]] != null) {
+                    if(index == 0){
+                        Spacer(modifier = Modifier.height(if (isMultiSelecting && isSearching) 150.dp else if (isSearching) 120.dp else if(isMultiSelecting) 100.dp else 135.dp))
+                    }
+
                     SongView(
                         songData = allDeviceSongs[songIDs[index]]!!,
                         currentSong = currentSong,
+                        currentPosition = currentPosition,
                         id = index,
                         isMultiSelecting = isMultiSelecting,
                         isSelected = selectedSongs.contains(songIDs[index]),
@@ -155,11 +163,11 @@ fun SongsList(
                     if (index != songIDs.size - 1) {
                         Spacer(modifier = Modifier.height(5.dp))
                     }
-                }
-            }
 
-            item {
-                Spacer(modifier = Modifier.height(if (isMultiSelecting || isMiniPlayerVisible) 120.dp else 70.dp))
+                    if (index == songIDs.size - 1) {
+                        Spacer(modifier = Modifier.height(if (isMultiSelecting) 120.dp else if(isMiniPlayerVisible) 220.dp else 70.dp))
+                    }
+                }
             }
         }
 
@@ -168,6 +176,9 @@ fun SongsList(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
+                        .noGleamTaps {
+
+                        }
                         .padding(top = 85.dp)
                         .background(
                             Color(
@@ -383,6 +394,7 @@ fun SongsList(
 fun SongView(
     songData: SongData,
     currentSong: SongData?,
+    currentPosition: Int,
     mediaPlayerState: Int,
     id: Int,
     isMultiSelecting: Boolean,
@@ -448,6 +460,7 @@ fun SongView(
                 }
             }
         }
+
         if(songData.thumbnail != null && isCurrentPlaying) {
             Row(
                 modifier = Modifier
@@ -521,15 +534,15 @@ fun SongView(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
-                        color = if(isCurrentPlaying) Orange else White
+                        color = White
                     )
 
                     Text(
-                        text = durationMillisToStringMinutes(songData.duration),
+                        text = if(isCurrentPlaying) durationMillisToStringMinutes(currentPosition.toLong()) else durationMillisToStringMinutes(songData.duration),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
-                        color = if(isCurrentPlaying) Orange else White
+                        color = White
                     )
                 }
 
@@ -539,7 +552,7 @@ fun SongView(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
-                    color = if(isCurrentPlaying) Orange else LighterGray,
+                    color = LighterGray,
                     fontSize = 14.sp
                 )
 
@@ -549,7 +562,7 @@ fun SongView(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
-                        color = if(isCurrentPlaying) Orange else LighterGray,
+                        color = LighterGray,
                         fontSize = 14.sp
                     )
                     Text(
@@ -557,7 +570,7 @@ fun SongView(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         fontWeight = if(isCurrentPlaying) FontWeight.ExtraBold else FontWeight.Normal,
-                        color = if(isCurrentPlaying) Orange else LighterGray,
+                        color = LighterGray,
                         fontSize = 14.sp
                     )
                 }
@@ -566,8 +579,9 @@ fun SongView(
 
         if (!isMultiSelecting) {
             Box(modifier = Modifier
+                .fillMaxHeight()
                 .align(Alignment.CenterEnd)
-                .clickable {
+                .noGleamTaps {
                     onAction(PLAY_SONG, songData.id, false)
                 }
             ) {

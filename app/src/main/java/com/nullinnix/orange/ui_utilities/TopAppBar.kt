@@ -4,6 +4,7 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -15,6 +16,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -40,6 +42,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.res.painterResource
@@ -89,7 +92,8 @@ fun TopAppBar(
     onDeletePlaylist: (String) -> Unit,
     onSearchParametersUpdate: (String?) -> Unit,
     isSearchingUpdated: (Boolean) -> Unit,
-    onSettings: () -> Unit
+    onSettings: () -> Unit,
+    onShowAnalytics: () -> Unit
 ) {
     var showingPlaylists by remember {
         mutableStateOf(false)
@@ -136,7 +140,6 @@ fun TopAppBar(
     Box(
         modifier = modifier
             .fillMaxSize()
-
     ) {
         if (showingPlaylists) {
             Box(
@@ -152,7 +155,10 @@ fun TopAppBar(
         Box(
             modifier = modifier
                 .fillMaxWidth()
-                .height(if(isMultiSelecting && isSearching) 140.dp else if(isSearching) 110.dp else 85.dp)
+                .height(if (isMultiSelecting && isSearching) 140.dp else if (isSearching) 110.dp else 85.dp)
+                .noGleamTaps {
+
+                }
                 .background(
                     Color(
                         TranslucentBlack.red,
@@ -170,7 +176,10 @@ fun TopAppBar(
         Box(
             modifier = modifier
                 .fillMaxWidth()
-                .padding(top = 45.dp),
+                .padding(top = 45.dp)
+                .noGleamTaps {
+
+                },
             contentAlignment = Alignment.Center
         ) {
             LazyColumn(
@@ -506,10 +515,49 @@ fun TopAppBar(
 
                         Spacer(modifier = Modifier.width(10.dp))
 
+
+                        //analytics
+                        Row(modifier = Modifier
+                            .clip(corners(5.dp))
+                            .background(Translucent)
+                            .clickable {
+                                onShowAnalytics()
+                            }
+                            .padding(top = 0.dp, start = 3.dp, bottom = 3.dp, end = 3.dp)
+                            .size(25.dp)
+                            .offset(4.dp),
+                            verticalAlignment = Alignment.Bottom,
+                            horizontalArrangement = Arrangement.End
+                        ) {
+                            Canvas(modifier = Modifier
+                                .height(5.dp)
+                                .width(8.dp)
+                                .background(Translucent)) {
+                                drawLine(color = Orange, start = Offset(0f, 0f), end = Offset(0f, this.size.height), strokeWidth = 15f)
+                            }
+
+                            Canvas(modifier = Modifier
+                                .height(12.dp)
+                                .width(8.dp)) {
+                                drawLine(color = Orange, start = Offset(0f, 0f), end = Offset(0f, this.size.height), strokeWidth = 15f)
+                            }
+
+                            Canvas(modifier = Modifier
+                                .height(18.dp)
+                                .width(8.dp)) {
+                                drawLine(color = Orange, start = Offset(0f, 0f), end = Offset(0f, this.size.height), strokeWidth = 15f)
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(5.dp))
+
                         Image(
                             imageVector = Icons.Default.Settings,
                             contentDescription = "",
                             modifier = Modifier
+                                .clip(corners(90.dp))
+                                .background(Translucent)
+                                .padding(3.dp)
                                 .size(25.dp)
                                 .clickable {
                                     onSettings()

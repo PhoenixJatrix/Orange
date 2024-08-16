@@ -113,12 +113,7 @@ class PlaylistManager (private val context: Activity){
     fun createPlaylist(name: String, songsToAdd: List<String>?, onSuccess: (String) -> Unit): Boolean{
         val oldPlaylists = playlists.value!!.values
 
-        var cleanedName = ""
-        name.forEach {
-            if(allowedKeys.contains(it.lowercase())){
-                cleanedName += it
-            }
-        }
+        val cleanedName = name.replace(",", "")
 
         try {
             val fos = FileOutputStream(playlistsFile(context))

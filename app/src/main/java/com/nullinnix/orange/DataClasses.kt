@@ -47,3 +47,7 @@ const val NOT_LOOPING = 3
 
 const val START_SEEKING = 0
 const val END_SEEKING = 1
+
+const val SHOW_TIME_REMAINING_KEY = "showTimeRemaining"
+const val SONG_ON_END_ACTION_KEY = "songOnEndAction"
+const val IS_SHUFFLING_KEY = "isShuffling"

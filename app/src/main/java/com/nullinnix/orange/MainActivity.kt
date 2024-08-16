@@ -31,17 +31,29 @@ class MainActivity : ComponentActivity() {
     private lateinit var songsManager: MutableLiveData<SongsManager>
     private lateinit var songPlayer: MutableLiveData<SongPlayer>
     private lateinit var playlistManager: MutableLiveData<PlaylistManager>
+    private var createdPersistentFiles = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         songsManager = MutableLiveData(SongsManager(this))
-        songPlayer = MutableLiveData(SongPlayer())
+        songPlayer = MutableLiveData(SongPlayer(this))
         playlistManager = MutableLiveData(PlaylistManager(this))
+
+        if(!createdPersistentFiles){
+            createPersistentFilesOnLaunch(this)
+            createdPersistentFiles = true
+        }
 
         if(hasAllMediaPermissions(this)){
             songsManager.value!!.getSongs {
                 playlistManager.value!!.playlists.value = playlistManager.value!!.getPlaylists().toMutableMap()
                 playlistManager.value!!.currentPlaylist.value = playlistManager.value!!.lastPlaylist(GET, null)!!
+
                 songsManager.value!!.isSongsUpdated()
+
+                songPlayer.value!!.onSongEndAction.value = songsManager.value!!.getPlayingOptions()[SONG_ON_END_ACTION_KEY] as Int
+                songPlayer.value!!.showTimeRemaining.value = songsManager.value!!.getPlayingOptions()[SHOW_TIME_REMAINING_KEY] as Boolean
+                songPlayer.value!!.isShuffling.value = songsManager.value!!.getPlayingOptions()[IS_SHUFFLING_KEY] as Boolean
             }
         }
 
@@ -51,9 +63,6 @@ class MainActivity : ComponentActivity() {
         )
 
         setContent {
-            LaunchedEffect (Unit){
-                createPersistentFilesOnLaunch(this@MainActivity)
-            }
             val navHostController = rememberNavController()
 
             OrangeTheme {

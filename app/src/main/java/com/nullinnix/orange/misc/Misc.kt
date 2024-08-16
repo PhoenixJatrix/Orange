@@ -20,6 +20,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import com.nullinnix.orange.IS_SHUFFLING_KEY
+import com.nullinnix.orange.LOOPING_ALL
+import com.nullinnix.orange.SHOW_TIME_REMAINING_KEY
+import com.nullinnix.orange.SONG_ON_END_ACTION_KEY
 import com.nullinnix.orange.SongData
 import com.nullinnix.orange.VIEWING_ALBUMS
 import com.nullinnix.orange.VIEWING_ARTISTS
@@ -37,6 +41,7 @@ import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PREPARING
 import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.RESET
 import java.io.File
 import java.io.FileOutputStream
+import java.time.Duration
 import java.time.LocalDate
 
 fun getPercentage(total: Int, percent: Int): Int {
@@ -139,6 +144,27 @@ fun createPersistentFilesOnLaunch(context: Context) {
     if (!lastPlaylistFile(context).exists()) {
         writeRedundantFile(file = lastPlaylistFile(context), data = ALL_SONGS)
     }
+
+    if (!playOptionsFile(context).exists()) {
+        writeRedundantFile(
+            file = playOptionsFile(context),
+            data = "$SHOW_TIME_REMAINING_KEY:true\n$SONG_ON_END_ACTION_KEY:$LOOPING_ALL\n$IS_SHUFFLING_KEY:false\n"
+        )
+    }
+
+    if (!songsPlayCountFile(context).exists()) {
+        writeRedundantFile(
+            file = songsPlayCountFile(context),
+            data = ""
+        )
+    }
+
+    if (!totalPlaytimeFile(context).exists()) {
+        writeRedundantFile(
+            file = totalPlaytimeFile(context),
+            data = "0\n"
+        )
+    }
 }
 
 fun thumbnailsDirectory(context: Context): File{
@@ -169,9 +195,15 @@ fun lastPlaylistFile(context: Context): File{
     return File(playlistDirectory(context), "lastPlaylist.txt")
 }
 
-//fun checkFirstRun(context: Context): Boolean {
-//    return firstRunFile(context).exists()
-//}
+fun playOptionsFile(context: Context): File{
+    return File(miscDirectory(context), "playOptionsFile.txt")
+}
+fun totalPlaytimeFile(context: Context): File{
+    return File(miscDirectory(context), "totalPlaytime.txt")
+}
+fun songsPlayCountFile(context: Context): File{
+    return File(miscDirectory(context), "songsPlayCount.txt")
+}
 
 fun writeRedundantFile(file: File, data: String = "") {
     try {
@@ -299,6 +331,22 @@ fun durationMillisToStringMinutes(duration: Long): String{
     return "$minutes:$seconds"
 }
 
+fun durationSecondsToDays(duration: Int): String {
+    val days = ((duration / 60) / 60) / 24
+    val hoursLeft = ((duration / 60) / 60) % 24
+    val minutesLeft = (duration / 60) % 60
+    val secondsLeft = duration % 60
+
+    return if (days > 0)
+        "$days ${if (days != 1) "days" else "day"}, $hoursLeft ${if (hoursLeft != 1) "hours " else "hour "}, $minutesLeft ${if (minutesLeft != 1) "minutes" else "minute"} and $secondsLeft ${if (secondsLeft != 1) "seconds" else "second"}"
+    else if (hoursLeft > 0)
+        "$hoursLeft ${if (hoursLeft != 1) "hours" else "hour"}, $minutesLeft ${if (minutesLeft != 1) "minutes" else "minute"} and $secondsLeft ${if (secondsLeft != 1) "seconds" else "second"}"
+    else if (minutesLeft > 0)
+        "$minutesLeft ${if (minutesLeft != 1) "minutes" else "minute"} and $secondsLeft ${if (secondsLeft != 1) "seconds" else "second"}"
+    else
+        "$secondsLeft ${if (secondsLeft != 1) "seconds" else "second"}"
+}
+
 fun getDate(): String {
     return "${LocalDate.now().dayOfMonth}:${LocalDate.now().monthValue}:${LocalDate.now().year}"
 }
@@ -393,12 +441,7 @@ fun getAnyAvailableAlbumCover(allSongsInPlaylist: List<SongData>, context: Conte
 }
 
 const val allowedKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ()-"
-
-const val ON_SKIP_NEXT = 1
-const val ON_SKIP_PREVIOUS = -1
-const val ON_TOGGLE_PLAY= 0
-const val ON_CLOSE_MINI_PLAYER = 2
-const val ON_OPEN_FULL_PLAYER = 3
+const val numbers = "1234567890"
 
 val mediaPlayerStateAction = mapOf(
     Pair(DORMANT, "DORMANT"),

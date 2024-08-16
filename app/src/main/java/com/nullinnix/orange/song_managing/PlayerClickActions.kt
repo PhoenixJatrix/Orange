@@ -9,5 +9,8 @@ class PlayerClickActions {
         const val TOGGLE_SONG_ON_END_ACTION = 4
         const val TOGGLE_SHUFFLE = 5
         const val SHOW_PLAYER = 6
+        const val TOGGLE_TIME_REMAINING = 7
+        const val SPEED_TOGGLE = 8
+        const val PITCH_TOGGLE = 9
     }
 }

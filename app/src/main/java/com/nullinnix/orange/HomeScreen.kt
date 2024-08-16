@@ -11,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -34,7 +35,12 @@ import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.COMPLETED
 import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.DORMANT
 import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PLAYING
 import com.nullinnix.orange.song_managing.PlayerClickActions
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.PITCH_TOGGLE
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SHOW_PLAYER
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SKIP_NEXT
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SKIP_PREVIOUS
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SPEED_TOGGLE
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.TOGGLE_TIME_REMAINING
 import com.nullinnix.orange.song_managing.PlaylistManager
 import com.nullinnix.orange.song_managing.SET
 import com.nullinnix.orange.song_managing.SongPlayer
@@ -43,6 +49,7 @@ import com.nullinnix.orange.song_managing.getSongDataFromIDs
 import com.nullinnix.orange.ui.theme.MildBlack
 import com.nullinnix.orange.ui.theme.Orange
 import com.nullinnix.orange.ui.theme.White
+import com.nullinnix.orange.ui_utilities.Analytics
 import com.nullinnix.orange.ui_utilities.Dialog
 import com.nullinnix.orange.ui_utilities.MiniPlayer
 import com.nullinnix.orange.ui_utilities.MultiSelectOptions
@@ -50,7 +57,10 @@ import com.nullinnix.orange.ui_utilities.Player
 import com.nullinnix.orange.ui_utilities.PlaylistsEditor
 import com.nullinnix.orange.ui_utilities.SongsList
 import com.nullinnix.orange.ui_utilities.TopAppBar
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
@@ -138,14 +148,184 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
     }
 
     var isShuffling by remember {
-        mutableStateOf(false)
+        mutableStateOf(songPlayer.isShuffling.value!!)
     }
 
     var onSongEndAction by remember {
-        mutableIntStateOf(LOOPING_ALL)
+        mutableIntStateOf(songPlayer.onSongEndAction.value!!)
+    }
+
+    var showTimeRemaining by remember {
+        mutableStateOf(songPlayer.showTimeRemaining.value!!)
+    }
+
+    var nextSongData by remember {
+        mutableStateOf<SongData?>(null)
+    }
+
+    var previousSongData by remember {
+        mutableStateOf<SongData?>(null)
+    }
+
+    var skipAnimationType by remember {
+        mutableIntStateOf(DORMANT)
+    }
+
+    var totalPlayCountUpdater by remember {
+        mutableIntStateOf(0)
+    }
+
+    var accruedSeconds by remember {
+        mutableIntStateOf(0)
+    }
+
+    var showAnalytics by remember {
+        mutableStateOf(false)
+    }
+
+    var currentSpeed by remember {
+        mutableFloatStateOf(songPlayer.currentSpeed.value!!)
+    }
+
+    var currentPitch by remember {
+        mutableFloatStateOf(songPlayer.currentSpeed.value!!)
+    }
+
+    var speedUpdated by remember {
+        mutableStateOf(false)
+    }
+
+    var pitchUpdated by remember {
+        mutableStateOf(false)
     }
 
     val isMiniPlayerVisible = currentSong != null && !showPlayer && mediaPlayerState != DORMANT && !isMultiSelecting
+
+    val playerClickActions = {action: Int ->
+        when (action) {
+            PlayerClickActions.TOGGLE_SONG_ON_END_ACTION -> {
+                val onSongEndActionUpdated = when(onSongEndAction){
+                    LOOPING_ALL -> {
+                        LOOPING_SINGLE
+                    }
+
+                    LOOPING_SINGLE -> {
+                        NOT_LOOPING
+                    }
+
+                    else -> {
+                        LOOPING_ALL
+                    }
+                }
+
+                onSongEndAction = onSongEndActionUpdated
+                songPlayer.onSongEndAction.value = onSongEndActionUpdated
+
+                songsManager.setPlayingOptions(
+                    mapOf(
+                        Pair(SONG_ON_END_ACTION_KEY, onSongEndActionUpdated),
+                        Pair(SHOW_TIME_REMAINING_KEY, showTimeRemaining),
+                        Pair(IS_SHUFFLING_KEY, isShuffling),
+                    )
+                )
+
+                songPlayer.updatePlayingOptions.value = true
+            }
+
+            PlayerClickActions.TOGGLE_PLAY -> {
+                if(songPlayer.mediaPlayerState.value == PLAYING){
+                    songPlayer.pause()
+                } else {
+                    songPlayer.play()
+                }
+            }
+
+            SKIP_NEXT -> {
+                songPlayer.skipNext(getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()){
+                    if(showPlayer){
+                        CoroutineScope(Dispatchers.Main).launch {
+                            skipAnimationType = SKIP_NEXT
+                            delay(300)
+                            skipAnimationType = DORMANT
+                            currentSong = allDeviceSongs[it]
+                        }
+                    } else {
+                        currentSong = allDeviceSongs[it]
+                    }
+                }
+            }
+
+            SKIP_PREVIOUS -> {
+                songPlayer.skipPrevious(getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()){
+                    currentSong = allDeviceSongs[it]
+
+                    if(showPlayer){
+                        CoroutineScope(Dispatchers.Main).launch {
+                            skipAnimationType = SKIP_PREVIOUS
+                            delay(300)
+                            skipAnimationType = DORMANT
+                        }
+                    }
+                }
+            }
+
+            PlayerClickActions.TOGGLE_LIKED -> {
+                playlistUpdated = true
+                allPlaylistsUpdated = true
+
+                if(playlists[LIKED_SONGS]!!.songs.contains(currentSong!!.id)){
+                    if(currentPlaylist == LIKED_SONGS){
+                        playlistManager.removeSongFromPlaylist(LIKED_SONGS, listOf(currentSong!!.id))
+                    } else {
+                        playlistManager.removeSongFromPlaylist(LIKED_SONGS, listOf(currentSong!!.id))
+                    }
+                } else {
+                    playlistManager.addSongsToPlaylist(LIKED_SONGS, listOf(currentSong!!.id))
+                }
+            }
+
+            PlayerClickActions.TOGGLE_SHUFFLE -> {
+                if(!isShuffling){
+                    isShuffling = true
+                    allSongsInPlaylist = songPlayer.shuffleSongs(
+                        songsInPlaylist = playlists[currentPlaylist]!!.songs,
+                        mostPlayed = songsManager.getMostPlayed().keys.toList(),
+                        liked = playlistManager.playlists.value!![LIKED_SONGS]!!.songs
+                    )
+                } else {
+                    isShuffling = false
+                    allSongsInPlaylist = playlists[currentPlaylist]!!.songs
+                }
+
+                songsManager.setPlayingOptions(
+                    mapOf(
+                        Pair(SONG_ON_END_ACTION_KEY, onSongEndAction),
+                        Pair(SHOW_TIME_REMAINING_KEY, showTimeRemaining),
+                        Pair(IS_SHUFFLING_KEY, isShuffling),
+                    )
+                )
+
+                songPlayer.updatePlayingOptions.value = true
+            }
+
+            SHOW_PLAYER -> {
+                showPlayer = true
+            }
+
+            TOGGLE_TIME_REMAINING -> {
+                showTimeRemaining = !showTimeRemaining
+                songsManager.setPlayingOptions(
+                    mapOf(
+                        Pair(SONG_ON_END_ACTION_KEY, onSongEndAction),
+                        Pair(SHOW_TIME_REMAINING_KEY, showTimeRemaining),
+                        Pair(IS_SHUFFLING_KEY, isShuffling),
+                    )
+                )
+
+                songPlayer.updatePlayingOptions.value = true
+            }
+        }
+    }
 
     songPlayer.mediaPlayer.setOnCompletionListener {
         if(allSongsInPlaylist.isNotEmpty() && currentSong != null) {
@@ -153,22 +333,45 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
 
             when (songPlayer.onSongEndAction.value!!) {
                 LOOPING_ALL -> {
-                    if (currentSong!!.id != allSongsInPlaylist.last()) {
-                        songPlayer.skipNext(getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()) {
-                            currentSong = allDeviceSongs[it]
+                    if(showPlayer){
+                        CoroutineScope(Dispatchers.Main).launch {
+                            skipAnimationType = SKIP_NEXT
+                            delay(200)
+
+                            if (currentSong!!.id != allSongsInPlaylist.last()) {
+                                songPlayer.skipNext(getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()) {
+                                    currentSong = allDeviceSongs[it]
+                                }
+                            } else {
+                                songPlayer.setDataSourceAndPrepare(
+                                    data = allDeviceSongs[allSongsInPlaylist[0]]!!.path,
+                                    songID = allDeviceSongs[allSongsInPlaylist[0]]!!.id
+                                ) {
+                                    currentSong = allDeviceSongs[it]
+                                }
+                            }
+
+                            skipAnimationType = DORMANT
                         }
                     } else {
-                        songPlayer.setDataSourceAndPrepare(
-                            data = allDeviceSongs[allSongsInPlaylist[0]]!!.path,
-                            songID = allDeviceSongs[allSongsInPlaylist[0]]!!.id
-                        ) {
-                            currentSong = allDeviceSongs[it]
+                        if (currentSong!!.id != allSongsInPlaylist.last()) {
+                            songPlayer.skipNext(getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()) {
+                                currentSong = allDeviceSongs[it]
+                            }
+                        } else {
+                            songPlayer.setDataSourceAndPrepare(
+                                data = allDeviceSongs[allSongsInPlaylist[0]]!!.path,
+                                songID = allDeviceSongs[allSongsInPlaylist[0]]!!.id
+                            ) {
+                                currentSong = allDeviceSongs[it]
+                            }
                         }
                     }
                 }
 
                 LOOPING_SINGLE -> {
                     songPlayer.mediaPlayer.seekTo(0)
+                    songsManager.setSongPlayCount(songPlayer.currentPlaying.value!!)
                     songPlayer.play()
                 }
 
@@ -222,6 +425,38 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
         Log.d("", "MediaPlayerState: ${mediaPlayerStateAction[mediaPlayerState]!!}")
     }
 
+    songPlayer.updatePlayingOptions.observeForever {
+        if(it){
+            songPlayer.onSongEndAction.value = songsManager.getPlayingOptions()[SONG_ON_END_ACTION_KEY] as Int
+            songPlayer.showTimeRemaining.value = songsManager.getPlayingOptions()[SHOW_TIME_REMAINING_KEY] as Boolean
+            songPlayer.isShuffling.value = songsManager.getPlayingOptions()[IS_SHUFFLING_KEY] as Boolean
+
+            onSongEndAction = songPlayer.onSongEndAction.value!!
+            showTimeRemaining = songPlayer.showTimeRemaining.value!!
+            isShuffling = songPlayer.isShuffling.value!!
+
+            songPlayer.updatePlayingOptions.value = false
+        }
+    }
+
+    songPlayer.currentSpeed.observeForever {
+        if(speedUpdated){
+            currentSpeed = it
+            Log.d("", "HomeScreen: $it")
+            songPlayer.mediaPlayer.playbackParams = songPlayer.mediaPlayer.playbackParams.setSpeed(currentSpeed)
+            speedUpdated = false
+        }
+    }
+
+    songPlayer.currentPitch.observeForever {
+        if(pitchUpdated){
+            currentPitch = it
+            Log.d("", "HomeScreen: $it")
+            songPlayer.mediaPlayer.playbackParams = songPlayer.mediaPlayer.playbackParams.setPitch(currentPitch)
+            pitchUpdated = false
+        }
+    }
+
     LaunchedEffect(key1 = Unit) {
         delay(1000)
         playlistUpdated = true
@@ -250,10 +485,42 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
 
     LaunchedEffect(key1 = currentPositionUpdate) {
         currentPosition = songPlayer.mediaPlayer.currentPosition
-        delay(1000)
+        delay(500)
         if(songPlayer.mediaPlayerState.value == PLAYING){
             currentPositionUpdate += 1
         }
+    }
+
+    LaunchedEffect(key1 = currentSong) {
+        if(currentSong != null){
+            songPlayer.getNextSongData(songsInPlaylist = getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()){
+                nextSongData = it
+            }
+
+            songPlayer.getPreviousSongData(songsInPlaylist = getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()){
+                previousSongData = it
+            }
+        }
+    }
+
+    LaunchedEffect(key1 = Unit) {
+        if(songPlayer.isShuffling.value == true){
+            Log.d("", "HomeScreen: ${songsManager.getMostPlayed()}")
+        }
+    }
+
+    LaunchedEffect(key1 = totalPlayCountUpdater) {
+        delay(1000)
+        if(songPlayer.mediaPlayer.isPlaying){
+            accruedSeconds += 1
+
+            if(accruedSeconds >= 5){
+                songsManager.setTotalPlaytime()
+                accruedSeconds = 0
+            }
+        }
+
+        totalPlayCountUpdater += 1
     }
 
     BackHandler(isMultiSelecting) {
@@ -295,6 +562,7 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                 songIDs = allSongsInPlaylist,
                 allDeviceSongs = allDeviceSongs,
                 currentSong = currentSong,
+                currentPosition = currentPosition,
                 isMiniPlayerVisible = isMiniPlayerVisible,
                 isMultiSelecting = isMultiSelecting,
                 selectedSongs = selectedSongs,
@@ -360,100 +628,20 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                     }
                 }
             )
-
-            Box(modifier = Modifier.align(Alignment.BottomCenter)) {
-                // MiniPlayer()
-            }
         }
 
-        if(isMiniPlayerVisible && currentSong != null){
+        if(isMiniPlayerVisible && currentSong != null && currentSongSortType == VIEWING_ALL){
             MiniPlayer(
                 modifier = Modifier.align(Alignment.BottomCenter),
                 mediaPlayerState = mediaPlayerState,
                 currentPosition = currentPosition,
-                allSongsInPlaylist = getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs),
-                currentPlaying = currentSong!!,
-                currentPlaylist = playlists[currentPlaylist]!!,
+                currentSong = currentSong!!,
                 isLiked = playlists[LIKED_SONGS]!!.songs.contains(currentSong!!.id),
                 isShuffling = isShuffling,
                 onSongEndAction = onSongEndAction,
+                showTimeRemaining = showTimeRemaining,
                 onAction = {action ->
-                    when (action) {
-                        PlayerClickActions.TOGGLE_SONG_ON_END_ACTION -> {
-                            val onSongEndActionUpdated = when(onSongEndAction){
-                                LOOPING_ALL -> {
-                                    LOOPING_SINGLE
-                                }
-
-                                LOOPING_SINGLE -> {
-                                    NOT_LOOPING
-                                }
-
-                                else -> {
-                                    LOOPING_ALL
-                                }
-                            }
-
-                            onSongEndAction = onSongEndActionUpdated
-                            songPlayer.onSongEndAction.value = onSongEndActionUpdated
-                        }
-
-                        PlayerClickActions.TOGGLE_PLAY -> {
-                            if(songPlayer.mediaPlayerState.value == PLAYING){
-                                songPlayer.pause()
-                            } else {
-                                songPlayer.play()
-                            }
-                        }
-
-                        PlayerClickActions.SKIP_NEXT -> {
-                            songPlayer.skipNext(getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()){
-                                currentSong = allDeviceSongs[it]
-                            }
-                        }
-
-                        PlayerClickActions.SKIP_PREVIOUS -> {
-                            songPlayer.skipPrevious(getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()){
-                                currentSong = allDeviceSongs[it]
-                            }
-                        }
-
-                        PlayerClickActions.TOGGLE_LIKED -> {
-                            playlistUpdated = true
-                            allPlaylistsUpdated = true
-
-                            if(playlists[LIKED_SONGS]!!.songs.contains(currentSong!!.id)){
-                                if(currentPlaylist == LIKED_SONGS){
-                                    songPlayer.pause()
-                                    showPlayer = false
-                                    songPlayer.currentPlaying.value = ""
-                                    playlistManager.removeSongFromPlaylist(LIKED_SONGS, listOf(currentSong!!.id))
-                                    currentSong = null
-                                } else {
-                                    playlistManager.removeSongFromPlaylist(LIKED_SONGS, listOf(currentSong!!.id))
-                                }
-                            } else {
-                                playlistManager.addSongsToPlaylist(LIKED_SONGS, listOf(currentSong!!.id))
-                            }
-                        }
-
-                        PlayerClickActions.TOGGLE_SHUFFLE -> {
-                            if(!isShuffling){
-                                isShuffling = true
-                                allSongsInPlaylist = playlists[currentPlaylist]!!.songs
-                            } else {
-                                isShuffling = false
-                                allSongsInPlaylist = songPlayer.shuffleSongs(allSongsInPlaylist)
-                            }
-                        }
-
-                        SHOW_PLAYER -> {
-                            showPlayer = true
-                        }
-                    }
-                },
-                onClose = {
-                    showPlayer = false
+                    playerClickActions(action)
                 },
                 onSeek = {action, seekPosition ->
                     when(action) {
@@ -536,6 +724,9 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                 },
                 onSettings = {
 
+                },
+                onShowAnalytics = {
+                    showAnalytics = true
                 }
             )
         }
@@ -612,6 +803,25 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                 showPlaylistEditor = false
             }
         }
+
+        if(showAnalytics){
+            Analytics(
+                allSongsInPlaylist = getSongDataFromIDs(playlistManager.playlists.value!![currentPlaylist]!!.songs, allDeviceSongs),
+                songsManager = songsManager,
+                onPreview = {songs, name ->
+                    allPlaylistsUpdated = true
+                    playlistManager.createPlaylist(name, songs){
+                        playlistUpdated = true
+                        playlistManager.currentPlaylist.value = it
+                    }
+
+                    showAnalytics = false
+                },
+                onClose = {
+                    showAnalytics = false
+                }
+            )
+        }
     }
 
     if(showMediaPermissionDialog){
@@ -644,72 +854,18 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
             mediaPlayerState = mediaPlayerState,
             currentPosition = currentPosition,
             currentSong = currentSong!!,
-            currentPlaylist = playlists[currentPlaylist]!!,
+            previousSongData = previousSongData,
+            nextSongData = nextSongData,
+            allSongsInPlaylist = getSongDataFromIDs(playlists[currentPlaylist]!!.songs, allDeviceSongs),
             isLiked = playlists[LIKED_SONGS]!!.songs.contains(currentSong!!.id),
             isShuffling = isShuffling,
             onSongEndAction = onSongEndAction,
+            showTimeRemaining = showTimeRemaining,
+            skipAnimationType = skipAnimationType,
+            currentSpeed = currentSpeed,
+            currentPitch = currentPitch,
             onAction = {action ->
-                when (action) {
-                    PlayerClickActions.TOGGLE_SONG_ON_END_ACTION -> {
-                        val onSongEndActionUpdated = when(onSongEndAction){
-                            LOOPING_ALL -> {
-                                LOOPING_SINGLE
-                            }
-
-                            LOOPING_SINGLE -> {
-                                NOT_LOOPING
-                            }
-
-                            else -> {
-                                LOOPING_ALL
-                            }
-                        }
-
-                        onSongEndAction = onSongEndActionUpdated
-                        songPlayer.onSongEndAction.value = onSongEndActionUpdated
-                    }
-
-                    PlayerClickActions.TOGGLE_PLAY -> {
-                        if(songPlayer.mediaPlayerState.value == PLAYING){
-                            songPlayer.pause()
-                        } else {
-                            songPlayer.play()
-                        }
-                    }
-
-                    PlayerClickActions.SKIP_NEXT -> {
-                        songPlayer.skipNext(getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()){
-                            currentSong = allDeviceSongs[it]
-                        }
-                    }
-
-                    PlayerClickActions.SKIP_PREVIOUS -> {
-                        songPlayer.skipPrevious(getSongDataFromIDs(allSongsInPlaylist, allDeviceSongs).values.toList()){
-                            currentSong = allDeviceSongs[it]
-                        }
-                    }
-
-                    PlayerClickActions.TOGGLE_LIKED -> {
-                        playlistUpdated = true
-                        allPlaylistsUpdated = true
-
-                        if(playlists[LIKED_SONGS]!!.songs.contains(currentSong!!.id)){
-                            playlistManager.removeSongFromPlaylist(LIKED_SONGS, listOf(currentSong!!.id))
-                        } else {
-                            playlistManager.addSongsToPlaylist(LIKED_SONGS, listOf(currentSong!!.id))
-                        }
-                    }
-
-                    PlayerClickActions.TOGGLE_SHUFFLE -> {
-                        if(!isShuffling){
-                            isShuffling = true
-                            allSongsInPlaylist = playlists[currentPlaylist]!!.songs
-                        } else {
-                            isShuffling = false
-                            allSongsInPlaylist = songPlayer.shuffleSongs(allSongsInPlaylist)
-                        }
-                    }
-                }
+                playerClickActions(action)
             },
             onClose = {
                 showPlayer = false
@@ -728,6 +884,19 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                         currentPosition = seekPosition!!
                         songPlayer.mediaPlayer.seekTo(seekPosition)
                         songPlayer.play()
+                    }
+                }
+            },
+            onPlaybackToggle = {playbackType, value ->
+                when(playbackType) {
+                    PITCH_TOGGLE -> {
+                        songPlayer.currentPitch.value = value
+                        pitchUpdated = true
+                    }
+
+                    SPEED_TOGGLE -> {
+                        songPlayer.currentSpeed.value = value
+                        speedUpdated = true
                     }
                 }
             }
