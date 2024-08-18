@@ -69,4 +69,6 @@ dependencies {
 
     implementation(libs.navigation.compose)
     implementation(libs.accompanist.permissions)
+
+    implementation(libs.okhttp)
 }

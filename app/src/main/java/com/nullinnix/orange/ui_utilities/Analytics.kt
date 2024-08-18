@@ -33,6 +33,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -40,6 +41,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.max
 import androidx.compose.ui.unit.sp
 import com.nullinnix.orange.SongData
 import com.nullinnix.orange.misc.corners
@@ -70,6 +72,7 @@ import kotlinx.coroutines.delay
 fun Analytics(
     allSongsInPlaylist: Map<String, SongData>,
     songsManager: SongsManager,
+    playlistName: String,
     onPreview: (List<String>, String) -> Unit,
     onClose: () -> Unit
 ) {
@@ -148,13 +151,19 @@ fun Analytics(
                         .background(TranslucentGray)
                 ) {
                     Text(
-                        text = "Most played song",
+                        text = buildAnnotatedString {
+                            append("Most played song in ")
+
+                            withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)){
+                                append(playlistName)
+                            }
+                        },
                         color = White,
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(Orange)
                             .padding(5.dp),
-                        fontWeight = FontWeight.ExtraBold
+                        maxLines = 1
                     )
 
                     Row(
@@ -183,7 +192,13 @@ fun Analytics(
                         unPlayedSongs,
                         allSongsInPlaylist
                     ).values.toList(),
-                    label = "Songs never played",
+                    label = buildAnnotatedString {
+                        append("Songs never played in ")
+
+                        withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)){
+                            append(playlistName)
+                        }
+                    },
                     previewPlaylistName = "Never played on ${getDate()}",
                     timesPlayed = null
                 ) { songs, previewPlaylistName ->
@@ -198,7 +213,13 @@ fun Analytics(
                         if (mostPlayed.size > 10) mostPlayed.keys.toList()
                             .subList(0, 10) else mostPlayed.keys.toList(), allSongsInPlaylist
                     ).values.toList(),
-                    label = "Top #10 most played songs",
+                    label = buildAnnotatedString {
+                        append("Top #10 most played songs in ")
+
+                        withStyle(SpanStyle(fontWeight = FontWeight.ExtraBold)){
+                            append(playlistName)
+                        }
+                    },
                     previewPlaylistName = "Top played on ${getDate()}",
                     timesPlayed =
                     if (mostPlayed.size > 10)
@@ -216,7 +237,7 @@ fun Analytics(
 }
 
 @Composable
-fun AnalyticDetailView(songs: List<SongData>, timesPlayed: List<Int>?, label: String, previewPlaylistName: String, onPreview: (List<String>, String) -> Unit) {
+fun AnalyticDetailView(songs: List<SongData>, timesPlayed: List<Int>?, label: AnnotatedString, previewPlaylistName: String, onPreview: (List<String>, String) -> Unit) {
     var isExpanded by remember {
         mutableStateOf(false)
     }
@@ -248,7 +269,7 @@ fun AnalyticDetailView(songs: List<SongData>, timesPlayed: List<Int>?, label: St
                 .fillMaxWidth()
                 .background(Orange)
                 .padding(5.dp),
-            fontWeight = FontWeight.ExtraBold
+            maxLines = 1
         )
 
         LazyColumn(

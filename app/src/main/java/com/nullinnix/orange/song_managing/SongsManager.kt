@@ -6,12 +6,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.media.MediaMetadataRetriever
 import android.os.Build
-import android.os.CountDownTimer
 import android.provider.MediaStore
-import android.util.Log
-import androidx.compose.foundation.shape.CornerSize
 import androidx.lifecycle.MutableLiveData
-import androidx.lifecycle.ViewModel
 import com.nullinnix.orange.SongData
 import com.nullinnix.orange.misc.lastMusicLog
 import com.nullinnix.orange.misc.numbers
@@ -19,9 +15,6 @@ import com.nullinnix.orange.misc.playOptionsFile
 import com.nullinnix.orange.misc.songsPlayCountFile
 import com.nullinnix.orange.misc.thumbnailsDirectory
 import com.nullinnix.orange.misc.totalPlaytimeFile
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileInputStream
@@ -59,15 +52,31 @@ class SongsManager (private val context: Activity) {
         )
 
         while (cursor?.moveToNext() == true) {
+            val artist =
+                if(cursor.getString(7).trim() != "<unknown>")
+                    cursor.getString(7)
+                else if(cursor.getString(0).contains("-"))
+                    cursor.getString(0).substring(0, cursor.getString(0).lastIndexOf("-")).trim()
+                else
+                    "Unknown"
+
+            val title =
+                if(cursor.getString(0).contains("-"))
+                    cursor.getString(0).substring(cursor.getString(0).lastIndexOf("-") + 1).trim()
+                else if(cursor.getString(0).trim() != "<unknown>")
+                    cursor.getString(0)
+                else
+                    cursor.getString(0)
+
             val songData = SongData(
-                title = cursor.getString(0),
+                title = title,
                 path = cursor.getString(1),
                 id = cursor.getString(2),
                 displayName = cursor.getString(3),
                 duration = cursor.getString(4).toLong(),
                 album = cursor.getString(5),
                 genre = if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) cursor.getString(6) else null,
-                artist = cursor.getString(7),
+                artist = artist,
                 thumbnail = if(File(thumbnailsDirectory(context), "${cursor.getString(2)}.jpg").exists()) getThumbnailFromPath(cursor.getString(2)) else createSingleThumbnail(saveID = cursor.getString(2), originalFilePath = cursor.getString(1))
             )
 
@@ -182,7 +191,7 @@ class SongsManager (private val context: Activity) {
                 val key = line.split(":")[0]
                 val value = line.split(":")[1]
 
-                if(numbers.split("").contains(value)){
+                if(numbers.contains(value[0])){
                     playingOptions[key] = value.toInt()
                 } else {
                     playingOptions[key] = value == "true"
@@ -280,7 +289,7 @@ class SongsManager (private val context: Activity) {
         }
     }
 
-    fun getSongPlayCount(): Map<String, Int>{
+    private fun getSongPlayCount(): Map<String, Int>{
         val songPlayCount = mutableMapOf<String, Int>()
 
         try {

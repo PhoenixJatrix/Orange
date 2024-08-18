@@ -23,6 +23,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.withStyle
+import com.nullinnix.orange.lyrics.LyricsManager
 import com.nullinnix.orange.misc.RequestMediaPermission
 import com.nullinnix.orange.misc.checkMediaPermission
 import com.nullinnix.orange.misc.getInterval
@@ -37,6 +38,8 @@ import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PLAYING
 import com.nullinnix.orange.song_managing.PlayerClickActions
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.PITCH_TOGGLE
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SHOW_PLAYER
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SKIP_BACK5
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SKIP_FORWARD5
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SKIP_NEXT
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SKIP_PREVIOUS
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SPEED_TOGGLE
@@ -64,7 +67,7 @@ import kotlinx.coroutines.launch
 import java.io.File
 
 @Composable
-fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPlayer, playlistManager: PlaylistManager) {
+fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPlayer, playlistManager: PlaylistManager, lyricsManager: LyricsManager) {
     var requestMediaPermission by remember {
         mutableStateOf(false)
     }
@@ -117,6 +120,10 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
 
     var selectedSongs by remember {
         mutableStateOf(listOf<String>())
+    }
+
+    var placeHolderName by remember {
+        mutableStateOf("")
     }
 
     var showPlaylistEditor by remember {
@@ -323,6 +330,24 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                 )
 
                 songPlayer.updatePlayingOptions.value = true
+            }
+
+            SKIP_FORWARD5 -> {
+               if(currentPosition + 5000 <= currentSong!!.duration){
+                   songPlayer.mediaPlayer.seekTo(currentPosition + 5000)
+               }
+            }
+
+            SKIP_BACK5 -> {
+                if(currentPosition - 5000 >= 0){
+                    songPlayer.mediaPlayer.seekTo(currentPosition - 5000)
+                } else {
+                    songPlayer.mediaPlayer.seekTo(0)
+                }
+            }
+
+            in listOf(LOOPING_ALL, LOOPING_SINGLE, NOT_LOOPING) -> {
+                songPlayer.onSongEndAction.value = action
             }
         }
     }
@@ -772,7 +797,11 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
         }
 
         if(showPlaylistEditor){
-            PlaylistsEditor(playlistManager = playlistManager, isMultiSelecting = isMultiSelecting, selectedSongs = selectedSongs){action, id ->
+            PlaylistsEditor(
+                playlistManager = playlistManager,
+                isMultiSelecting = isMultiSelecting,
+                placeHolderName = placeHolderName
+            ) { action, id ->
                 when(action){
                     CREATED_NEW_PLAYLIST -> {
                         allPlaylistsUpdated = true
@@ -783,6 +812,7 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
 
                         selectedSongs = listOf()
                         isMultiSelecting = false
+                        placeHolderName = ""
                     }
 
                     ADDED_TO_PLAYLIST -> {
@@ -797,6 +827,7 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
 
                         selectedSongs = listOf()
                         isMultiSelecting = false
+                        placeHolderName = ""
                     }
                 }
 
@@ -808,12 +839,12 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
             Analytics(
                 allSongsInPlaylist = getSongDataFromIDs(playlistManager.playlists.value!![currentPlaylist]!!.songs, allDeviceSongs),
                 songsManager = songsManager,
+                playlistName = playlistManager.playlists.value!![currentPlaylist]!!.name,
                 onPreview = {songs, name ->
-                    allPlaylistsUpdated = true
-                    playlistManager.createPlaylist(name, songs){
-                        playlistUpdated = true
-                        playlistManager.currentPlaylist.value = it
-                    }
+                    selectedSongs = songs
+                    placeHolderName = name
+                    isMultiSelecting = true
+                    showPlaylistEditor = true
 
                     showAnalytics = false
                 },
@@ -864,6 +895,8 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
             skipAnimationType = skipAnimationType,
             currentSpeed = currentSpeed,
             currentPitch = currentPitch,
+            lyricsManager = lyricsManager,
+            context = context,
             onAction = {action ->
                 playerClickActions(action)
             },

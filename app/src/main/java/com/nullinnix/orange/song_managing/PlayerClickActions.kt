@@ -12,5 +12,8 @@ class PlayerClickActions {
         const val TOGGLE_TIME_REMAINING = 7
         const val SPEED_TOGGLE = 8
         const val PITCH_TOGGLE = 9
+
+        const val SKIP_BACK5 = 10
+        const val SKIP_FORWARD5 = 11
     }
 }

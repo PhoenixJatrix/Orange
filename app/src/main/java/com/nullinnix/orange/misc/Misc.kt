@@ -165,6 +165,10 @@ fun createPersistentFilesOnLaunch(context: Context) {
             data = "0\n"
         )
     }
+
+    if (!lyricsDirectory(context).exists()) {
+        lyricsDirectory(context).mkdir()
+    }
 }
 
 fun thumbnailsDirectory(context: Context): File{
@@ -203,6 +207,10 @@ fun totalPlaytimeFile(context: Context): File{
 }
 fun songsPlayCountFile(context: Context): File{
     return File(miscDirectory(context), "songsPlayCount.txt")
+}
+
+fun lyricsDirectory(context: Context): File{
+    return File(miscDirectory(context), "Lyrics")
 }
 
 fun writeRedundantFile(file: File, data: String = "") {
@@ -260,65 +268,6 @@ fun copyFromClipBoard(context: Context): String? {
     } else {
         clipData
     }
-}
-
-fun cleanJSON(json: String): List<String> {
-    val stripedJson = json.substring(1, json.length - 1)
-    val validatedPairs = mutableListOf<String>()
-
-    var kv = ""
-    var quotesCounter = 0
-    var curlyClosed = true
-    var squareClosed = true
-
-    for (index in stripedJson.indices) {
-        if (stripedJson[index] == '"') {
-            quotesCounter++
-        }
-
-        if (stripedJson[index] == '{') {
-            curlyClosed = false
-        }
-
-        if (stripedJson[index] == '[') {
-            squareClosed = false
-        }
-
-        if (stripedJson[index] == '}') {
-            curlyClosed = true
-        }
-
-        if (stripedJson[index] == ']') {
-            squareClosed = true
-        }
-
-        if (stripedJson[index] == ',') {
-            if (!curlyClosed) {
-                kv += stripedJson[index]
-                continue
-            }
-
-            if (!squareClosed) {
-                kv += stripedJson[index]
-                continue
-            }
-
-            if (quotesCounter % 2 == 1) {
-                kv += stripedJson[index]
-                continue
-            } else {
-                validatedPairs.add(kv)
-                kv = ""
-                quotesCounter = 0
-            }
-        } else {
-            kv += stripedJson[index]
-            if (index == stripedJson.length - 1) {
-                validatedPairs.add(kv)
-            }
-        }
-    }
-    return validatedPairs
 }
 
 fun durationMillisToStringMinutes(duration: Long): String{
@@ -440,8 +389,110 @@ fun getAnyAvailableAlbumCover(allSongsInPlaylist: List<SongData>, context: Conte
     return null
 }
 
-const val allowedKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 ()-"
+const val allowedKeys = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ1234567890 -."
 const val numbers = "1234567890"
+
+fun cleanSearchParameter(string: String) : String {
+    var cleaned = ""
+
+    for (letter in string) {
+        when (letter.toString().lowercase()) {
+            "#" -> {
+                cleaned += "%23"
+            }
+
+            " " -> {
+                cleaned += "+"
+            }
+
+            "+" -> {
+                cleaned += "%2B"
+            }
+
+            "!" -> {
+                cleaned += "%21"
+            }
+
+            "$" -> {
+                cleaned += "%24"
+            }
+
+            "%" -> {
+                cleaned += "%25"
+            }
+
+            "&" -> {
+                cleaned += "%26"
+            }
+
+            "(" -> {
+                cleaned += "%28"
+            }
+
+            ")" -> {
+                cleaned += "%29"
+            }
+
+            "|" -> {
+                cleaned += "%7C"
+            }
+
+            "\\" -> {
+                cleaned += "%5C"
+            }
+
+            "/" -> {
+                cleaned += "%2F"
+            }
+
+            "," -> {
+                cleaned += "%2C"
+            }
+
+            "[" -> {
+                cleaned += "%5B"
+            }
+
+            "]" -> {
+                cleaned += "%5D"
+            }
+
+            "'" -> {
+                cleaned += "%27"
+            }
+
+            ";" -> {
+                cleaned += "%3B"
+            }
+
+            ":" -> {
+                cleaned += "%3A"
+            }
+
+            "?" -> {
+                cleaned += "%3F"
+            }
+
+            "{" -> {
+                cleaned += "%7B"
+            }
+
+            "}" -> {
+                cleaned += "%7D"
+            }
+
+            else -> {
+                if(allowedKeys.contains(letter)){
+                    cleaned += letter
+                } else {
+                    cleaned += ""
+                }
+            }
+        }
+    }
+
+    return cleaned
+}
 
 val mediaPlayerStateAction = mapOf(
     Pair(DORMANT, "DORMANT"),

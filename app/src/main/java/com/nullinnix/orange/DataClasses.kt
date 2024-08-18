@@ -41,9 +41,9 @@ const val VIEWING_GENRE = 2
 
 const val NOT_SET = -1
 
-const val LOOPING_ALL = 1
-const val LOOPING_SINGLE = 2
-const val NOT_LOOPING = 3
+const val LOOPING_ALL = 100
+const val LOOPING_SINGLE = 200
+const val NOT_LOOPING = 300
 
 const val START_SEEKING = 0
 const val END_SEEKING = 1

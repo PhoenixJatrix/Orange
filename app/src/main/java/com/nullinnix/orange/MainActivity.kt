@@ -11,6 +11,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import com.nullinnix.orange.lyrics.LyricsManager
 import com.nullinnix.orange.misc.Screens
 import com.nullinnix.orange.misc.checkMediaPermission
 import com.nullinnix.orange.misc.createPersistentFilesOnLaunch
@@ -31,6 +32,7 @@ class MainActivity : ComponentActivity() {
     private lateinit var songsManager: MutableLiveData<SongsManager>
     private lateinit var songPlayer: MutableLiveData<SongPlayer>
     private lateinit var playlistManager: MutableLiveData<PlaylistManager>
+    private lateinit var lyricsManager: MutableLiveData<LyricsManager>
     private var createdPersistentFiles = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -38,6 +40,7 @@ class MainActivity : ComponentActivity() {
         songsManager = MutableLiveData(SongsManager(this))
         songPlayer = MutableLiveData(SongPlayer(this))
         playlistManager = MutableLiveData(PlaylistManager(this))
+        lyricsManager = MutableLiveData(LyricsManager(this))
 
         if(!createdPersistentFiles){
             createPersistentFilesOnLaunch(this)
@@ -77,7 +80,8 @@ class MainActivity : ComponentActivity() {
                             context = this@MainActivity,
                             songsManager = songsManager.value!!,
                             songPlayer = songPlayer.value!!,
-                            playlistManager = playlistManager.value!!
+                            playlistManager = playlistManager.value!!,
+                            lyricsManager = lyricsManager.value!!
                         )
                     }
 

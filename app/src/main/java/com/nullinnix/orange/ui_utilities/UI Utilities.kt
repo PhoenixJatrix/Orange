@@ -3,8 +3,11 @@ package com.nullinnix.orange.ui_utilities
 import android.util.Log
 import androidx.activity.compose.BackHandler
 import androidx.compose.animation.animateContentSize
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -42,9 +45,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.drawscope.DrawStyle
+import androidx.compose.ui.graphics.drawscope.Fill
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
@@ -63,6 +71,7 @@ import com.nullinnix.orange.CREATED_NEW_PLAYLIST
 import com.nullinnix.orange.DELETE_SELECTED
 import com.nullinnix.orange.END_SEEKING
 import com.nullinnix.orange.LOOPING_ALL
+import com.nullinnix.orange.LOOPING_SINGLE
 import com.nullinnix.orange.NOT_LOOPING
 import com.nullinnix.orange.Playlist
 import com.nullinnix.orange.R
@@ -85,8 +94,11 @@ import com.nullinnix.orange.song_managing.LIKED_SONGS
 import com.nullinnix.orange.song_managing.MediaPlayerState
 import com.nullinnix.orange.song_managing.PlayerClickActions
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SHOW_PLAYER
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SKIP_BACK5
+import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.SKIP_FORWARD5
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.TOGGLE_TIME_REMAINING
 import com.nullinnix.orange.song_managing.PlaylistManager
+import com.nullinnix.orange.ui.theme.Black
 import com.nullinnix.orange.ui.theme.DarkerGray
 import com.nullinnix.orange.ui.theme.LighterGray
 import com.nullinnix.orange.ui.theme.MildBlack
@@ -356,7 +368,14 @@ fun MiniPlayer(
                 .fillMaxWidth()
                 .height(50.dp)
                 .align(Alignment.TopCenter)
-                .background(brush = Brush.verticalGradient(listOf(Transparent, MildTranslucentBlack)))
+                .background(
+                    brush = Brush.verticalGradient(
+                        listOf(
+                            Transparent,
+                            MildTranslucentBlack
+                        )
+                    )
+                )
         ) {
 
         }
@@ -408,7 +427,7 @@ fun MiniPlayer(
 fun PlaylistsEditor(
     playlistManager: PlaylistManager,
     isMultiSelecting: Boolean,
-    selectedSongs: List<String>,
+    placeHolderName: String,
     onAction: (Int?, String?) -> Unit
 ) {
     val allPlaylists by remember {
@@ -416,7 +435,7 @@ fun PlaylistsEditor(
     }
 
     var playlistName by remember {
-        mutableStateOf("")
+        mutableStateOf(placeHolderName)
     }
 
     BackHandler {
@@ -454,7 +473,9 @@ fun PlaylistsEditor(
                         TextField(
                             value = playlistName,
                             onValueChange = {
-                                playlistName = it
+                                if(it.length <= 100){
+                                    playlistName = it
+                                }
                             },
                             maxLines = 1,
                             placeholder = {
@@ -722,25 +743,15 @@ fun Slider(
             Modifier
                 .width(positionAnim)
                 .height(heightAnim)
-                .clip(corners(
-                    topStart = 90.dp,
-                    bottomStart = 90.dp,
-                    topEnd = 0.dp,
-                    bottomEnd = 0.dp
-                ))
-                .background(
-                    translucentColor(
-                        Orange,
-                        if (getPercentage(
-                                1f,
-                                getPercent(currentMaxValue, currentPosition).toFloat()
-                            ) <= 0.5f
-                        ) 0.5f else getPercentage(
-                            1f,
-                            getPercent(currentMaxValue, currentPosition).toFloat()
-                        )
+                .clip(
+                    corners(
+                        topStart = 90.dp,
+                        bottomStart = 90.dp,
+                        topEnd = 0.dp,
+                        bottomEnd = 0.dp
                     )
                 )
+                .background(Orange)
         ) {
 
         }
@@ -758,11 +769,20 @@ fun MediaControlButtons(
     onSongEndAction: Int,
     showTimeRemaining: Boolean,
     showTitle: Boolean,
+    isLyricView: Boolean = false,
     onAction: (Int) -> Unit,
     onSeek: (action: Int, seekPosition: Int?) -> Unit
 ) {
     var showSlider by remember{
         mutableStateOf(true)
+    }
+
+    LaunchedEffect(key1 = isLyricView) {
+        if(isLyricView){
+            onAction(LOOPING_SINGLE)
+        } else {
+            onAction(LOOPING_ALL)
+        }
     }
 
     LaunchedEffect(key1 = currentSong) {
@@ -774,11 +794,12 @@ fun MediaControlButtons(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .height(200.dp)
-            .padding(horizontal = 5.dp)
+            .height(if (!isLyricView) 200.dp else 145.dp)
+            .animateContentSize()
             .noGleamTaps {
                 onAction(SHOW_PLAYER)
             }
+            .padding(horizontal = 5.dp)
     ) {
         if(showTitle) {
             Text(
@@ -858,12 +879,17 @@ fun MediaControlButtons(
                 .padding(horizontal = 15.dp), horizontalArrangement = Arrangement.SpaceAround
         ) {
             Image(
-                painter = painterResource(id = R.drawable.skip_previous),
+                painter = painterResource(id = if(isLyricView) R.drawable.skip_backwards_5 else R.drawable.skip_previous),
                 contentDescription = "",
                 modifier = Modifier
                     .size(30.dp)
                     .clickable {
-                        onAction(PlayerClickActions.SKIP_PREVIOUS)
+                        onAction(
+                            if (isLyricView)
+                                SKIP_BACK5
+                            else
+                                PlayerClickActions.SKIP_PREVIOUS
+                        )
                     },
                 colorFilter = ColorFilter.tint(White)
             )
@@ -880,58 +906,149 @@ fun MediaControlButtons(
             )
 
             Image(
-                painter = painterResource(id = R.drawable.skip_next),
+                painter = painterResource(id = if(isLyricView) R.drawable.skip_forward_5 else R.drawable.skip_next),
                 contentDescription = "",
                 modifier = Modifier
                     .size(30.dp)
                     .clickable {
-                        onAction(PlayerClickActions.SKIP_NEXT)
+                        onAction(
+                            if (isLyricView)
+                                SKIP_FORWARD5
+                            else
+                                PlayerClickActions.SKIP_NEXT
+                        )
                     },
                 colorFilter = ColorFilter.tint(White)
             )
         }
 
-        Spacer(modifier = Modifier.height(25.dp))
+        if(!isLyricView) {
+            Spacer(modifier = Modifier.height(25.dp))
 
-        Row(
-            Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 15.dp), horizontalArrangement = Arrangement.SpaceAround
-        ) {
-            Image(
-                painter = painterResource(id = R.drawable.shuffle),
-                contentDescription = "",
-                modifier = Modifier
-                    .size(30.dp)
-                    .clickable {
-                        onAction(PlayerClickActions.TOGGLE_SHUFFLE)
-                    },
-                colorFilter = ColorFilter.tint(if(isShuffling) White else Translucent)
-            )
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 15.dp), horizontalArrangement = Arrangement.SpaceAround
+            ) {
+                Image(
+                    painter = painterResource(id = R.drawable.shuffle),
+                    contentDescription = "",
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clickable {
+                            onAction(PlayerClickActions.TOGGLE_SHUFFLE)
+                        },
+                    colorFilter = ColorFilter.tint(if (isShuffling) White else Translucent)
+                )
 
-            Image(
-                imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
-                contentDescription = "",
-                modifier = Modifier
-                    .size(30.dp)
-                    .clickable {
-                        onAction(PlayerClickActions.TOGGLE_LIKED)
-                    },
-                colorFilter = ColorFilter.tint(White)
-            )
+                Image(
+                    imageVector = if (isLiked) Icons.Default.Favorite else Icons.Default.FavoriteBorder,
+                    contentDescription = "",
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clickable {
+                            onAction(PlayerClickActions.TOGGLE_LIKED)
+                        },
+                    colorFilter = ColorFilter.tint(White)
+                )
 
-            Image(
-                painter = painterResource(id = if (onSongEndAction == LOOPING_ALL || onSongEndAction == NOT_LOOPING) R.drawable.looping_all else R.drawable.looping_single),
-                contentDescription = "",
-                modifier = Modifier
-                    .size(30.dp)
-                    .clickable {
-                        onAction(PlayerClickActions.TOGGLE_SONG_ON_END_ACTION)
-                    },
-                colorFilter = ColorFilter.tint(if (onSongEndAction == NOT_LOOPING) Translucent else White)
-            )
+                Image(
+                    painter = painterResource(id = if (onSongEndAction == LOOPING_ALL || onSongEndAction == NOT_LOOPING) R.drawable.looping_all else R.drawable.looping_single),
+                    contentDescription = "",
+                    modifier = Modifier
+                        .size(30.dp)
+                        .clickable {
+                            onAction(PlayerClickActions.TOGGLE_SONG_ON_END_ACTION)
+                        },
+                    colorFilter = ColorFilter.tint(if (onSongEndAction == NOT_LOOPING) Translucent else White)
+                )
+            }
+            Spacer(modifier = Modifier.height(55.dp))
         }
+    }
+}
 
-        Spacer(modifier = Modifier.height(55.dp))
+@Composable
+fun LoadingAnimation(
+    onCancel: () -> Unit
+) {
+    var rotate by remember {
+        mutableStateOf(false)
+    }
+
+    var updateSweep by remember {
+        mutableIntStateOf(0)
+    }
+
+    var showCancel by remember {
+        mutableStateOf(false)
+    }
+
+    LaunchedEffect(key1 = Unit) {
+        delay(30000)
+
+        showCancel = true
+    }
+
+    var sweepAngle by remember {
+        mutableFloatStateOf(0f)
+    }
+
+    LaunchedEffect(key1 = Unit) {
+        rotate = true
+    }
+
+    LaunchedEffect(key1 = updateSweep) {
+        sweepAngle = 300f
+
+        delay(3000)
+
+        sweepAngle = 10f
+
+        delay(3000)
+
+        updateSweep += 1
+    }
+
+    val rotationAnim by animateFloatAsState(targetValue = if(rotate) 30000f else 0f, label = "", animationSpec = tween(100000, easing = LinearEasing))
+    val sweepAngleAnim by animateFloatAsState(targetValue = sweepAngle, label = "", animationSpec = tween(3000))
+
+    Box (
+        Modifier
+            .fillMaxSize()
+            .background(TranslucentBlack)
+            .noGleamTaps {
+
+            }, contentAlignment = Alignment.Center
+    ){
+        Column (horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()){
+            Canvas(
+                modifier = Modifier
+                    .rotate(if(!showCancel) rotationAnim else 0f)
+                    .size(50.dp)
+            ) {
+                drawArc(
+                    color = Orange,
+                    startAngle = 0f,
+                    sweepAngle = if(!showCancel) sweepAngleAnim else 360f,
+                    useCenter = false,
+                    style = Stroke(width = 10f, cap = StrokeCap.Round)
+                )
+            }
+
+            Spacer(modifier = Modifier.height(30.dp))
+
+            if(showCancel){
+                Box(modifier = Modifier
+                    .clip(corners(10.dp))
+                    .background(Orange)
+                    .clickable {
+                        onCancel()
+                    }
+                    .padding(5.dp), contentAlignment = Alignment.Center){
+                    Text(text = "Cancel", fontWeight = FontWeight.ExtraBold)
+                }
+            }
+        }
     }
 }
