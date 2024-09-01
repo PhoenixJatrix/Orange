@@ -247,6 +247,16 @@ class PlaylistManager (private val context: Activity){
 
         return null
     }
+
+    fun getPlaylistDuration(songsInPlaylist: List<SongData>): Long {
+        var totalDuration = 0L
+
+        for (song in songsInPlaylist){
+            totalDuration += song.duration
+        }
+
+        return totalDuration
+    }
 }
 
 fun getSongDataFromIDs(allPlaylistSongs: List<String>, allDeviceSongs: Map<String, SongData>): Map<String, SongData>{

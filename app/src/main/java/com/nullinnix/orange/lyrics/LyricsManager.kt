@@ -9,11 +9,8 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import okhttp3.Call
 import okhttp3.Callback
-import okhttp3.MediaType
-import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.OkHttpClient
 import okhttp3.Request.Builder
-import okhttp3.RequestBody.Companion.toRequestBody
 import okhttp3.Response
 import java.io.BufferedReader
 import java.io.File
@@ -21,7 +18,6 @@ import java.io.FileInputStream
 import java.io.FileOutputStream
 import java.io.IOException
 import java.io.InputStreamReader
-import java.io.OutputStream
 import java.util.concurrent.TimeUnit
 
 class LyricsManager (val context: Context){
@@ -93,17 +89,25 @@ class LyricsManager (val context: Context){
     fun getSongLyric(songID: String): String?{
         try {
             val lyricDirectory = File(lyricsDirectory(context), "$songID.txt")
+            var lyrics = ""
 
-            return if (lyricDirectory.exists()) {
+            if (lyricDirectory.exists()) {
                 val fis = FileInputStream(lyricDirectory)
                 val reader = BufferedReader(InputStreamReader(fis))
-                val line = reader.readLine()
+
+                reader.lines().forEach {
+                    lyrics += if(it.isNullOrEmpty()){
+                        "\\n"
+                    } else {
+                        it
+                    }
+                }
 
                 fis.close()
                 reader.close()
-                return line
+                return lyrics
             } else {
-                null
+                return null
             }
         } catch (e: Exception){
             e.printStackTrace()

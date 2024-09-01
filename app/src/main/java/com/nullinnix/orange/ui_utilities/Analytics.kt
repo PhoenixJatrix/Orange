@@ -49,6 +49,7 @@ import com.nullinnix.orange.misc.durationSecondsToDays
 import com.nullinnix.orange.misc.getAnyAvailableAlbumCover
 import com.nullinnix.orange.misc.getDate
 import com.nullinnix.orange.misc.noGleamTaps
+import com.nullinnix.orange.misc.screenHeight
 import com.nullinnix.orange.misc.screenWidth
 import com.nullinnix.orange.song_managing.SongsManager
 import com.nullinnix.orange.song_managing.getSongDataFromIDs
@@ -231,22 +232,35 @@ fun Analytics(
                 }
             }
 
+            if(mostPlayed.isNotEmpty()){
+                Spacer(modifier = Modifier.height(15.dp))
+                AnalyticDetailView(
+                    songs = getSongDataFromIDs(mostPlayed.keys.toList(), allSongsInPlaylist).values.toList(),
+                    timesPlayed = mostPlayed.values.toList(),
+                    label = buildAnnotatedString {append("All Songs in playlist sorted by times played")},
+                    previewPlaylistName = "Songs sorted by most played",
+                    capHeight = false
+                ) {songs, previewPlaylistName ->
+                    onPreview(songs, previewPlaylistName)
+                }
+            }
+
             Spacer(modifier = Modifier.height(50.dp))
         }
     }
 }
 
 @Composable
-fun AnalyticDetailView(songs: List<SongData>, timesPlayed: List<Int>?, label: AnnotatedString, previewPlaylistName: String, onPreview: (List<String>, String) -> Unit) {
+fun AnalyticDetailView(songs: List<SongData>, timesPlayed: List<Int>?, label: AnnotatedString, previewPlaylistName: String, capHeight: Boolean = true, onPreview: (List<String>, String) -> Unit) {
     var isExpanded by remember {
         mutableStateOf(false)
     }
 
     Box (
-        Modifier
+        modifier = Modifier
             .clip(corners(10.dp))
             .background(TranslucentGray)
-            .height(if (isExpanded) 500.dp else 185.dp)
+            .height(if (isExpanded) if(!capHeight) screenHeight().dp else 500.dp else 185.dp)
     ){
         if (getAnyAvailableAlbumCover(songs, LocalContext.current) != null) {
             Image(
@@ -275,7 +289,7 @@ fun AnalyticDetailView(songs: List<SongData>, timesPlayed: List<Int>?, label: An
         LazyColumn(
             modifier = Modifier
                 .fillMaxWidth()
-                .height(if (isExpanded) 420.dp else 105.dp)
+                .height(if (isExpanded) if(!capHeight) screenHeight().dp - 85.dp else 420.dp else 105.dp)
                 .align(Alignment.Center)
         ) {
             item {

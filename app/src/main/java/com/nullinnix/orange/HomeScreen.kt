@@ -34,6 +34,7 @@ import com.nullinnix.orange.song_managing.ALL_SONGS
 import com.nullinnix.orange.song_managing.LIKED_SONGS
 import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.COMPLETED
 import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.DORMANT
+import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PAUSED
 import com.nullinnix.orange.song_managing.MediaPlayerState.Companion.PLAYING
 import com.nullinnix.orange.song_managing.PlayerClickActions
 import com.nullinnix.orange.song_managing.PlayerClickActions.Companion.PITCH_TOGGLE
@@ -467,8 +468,11 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
     songPlayer.currentSpeed.observeForever {
         if(speedUpdated){
             currentSpeed = it
-            Log.d("", "HomeScreen: $it")
             songPlayer.mediaPlayer.playbackParams = songPlayer.mediaPlayer.playbackParams.setSpeed(currentSpeed)
+            if(songPlayer.mediaPlayerState.value!! == PAUSED){
+                songPlayer.pause()
+            }
+
             speedUpdated = false
         }
     }
@@ -476,7 +480,6 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
     songPlayer.currentPitch.observeForever {
         if(pitchUpdated){
             currentPitch = it
-            Log.d("", "HomeScreen: $it")
             songPlayer.mediaPlayer.playbackParams = songPlayer.mediaPlayer.playbackParams.setPitch(currentPitch)
             pitchUpdated = false
         }
@@ -697,6 +700,8 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                 selectedSongs = selectedSongs,
                 numberOfSongsInPlaylist = allSongsInPlaylist.size,
                 isSearching = isSearching,
+                allDeviceSongs = allDeviceSongs,
+                playlistManager = playlistManager,
                 onPlaylistChanged = {
                     playlistUpdated = true
                     playlistManager.currentPlaylist.value = it
@@ -799,7 +804,7 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
         if(showPlaylistEditor){
             PlaylistsEditor(
                 playlistManager = playlistManager,
-                isMultiSelecting = isMultiSelecting,
+                isMultiSelecting = isMultiSelecting || selectedSongs.isNotEmpty(),
                 placeHolderName = placeHolderName
             ) { action, id ->
                 when(action){
@@ -831,6 +836,8 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                     }
                 }
 
+                placeHolderName = ""
+
                 showPlaylistEditor = false
             }
         }
@@ -843,7 +850,6 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                 onPreview = {songs, name ->
                     selectedSongs = songs
                     placeHolderName = name
-                    isMultiSelecting = true
                     showPlaylistEditor = true
 
                     showAnalytics = false
@@ -921,15 +927,17 @@ fun HomeScreen(context: Activity, songsManager: SongsManager, songPlayer: SongPl
                 }
             },
             onPlaybackToggle = {playbackType, value ->
-                when(playbackType) {
-                    PITCH_TOGGLE -> {
-                        songPlayer.currentPitch.value = value
-                        pitchUpdated = true
-                    }
+                CoroutineScope(Dispatchers.Main).launch {
+                    when (playbackType) {
+                        PITCH_TOGGLE -> {
+                            songPlayer.currentPitch.value = value
+                            pitchUpdated = true
+                        }
 
-                    SPEED_TOGGLE -> {
-                        songPlayer.currentSpeed.value = value
-                        speedUpdated = true
+                        SPEED_TOGGLE -> {
+                            songPlayer.currentSpeed.value = value
+                            speedUpdated = true
+                        }
                     }
                 }
             }

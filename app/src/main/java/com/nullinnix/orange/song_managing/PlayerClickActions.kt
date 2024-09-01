@@ -15,5 +15,10 @@ class PlayerClickActions {
 
         const val SKIP_BACK5 = 10
         const val SKIP_FORWARD5 = 11
+
+        const val GO_TO_ARTIST = 12
+        const val ADD_SONG_TO_PLAYLIST = 13
+        const val CHANGE_ALBUM_COVER = 14
+        const val DELETE_SONG = 15
     }
 }

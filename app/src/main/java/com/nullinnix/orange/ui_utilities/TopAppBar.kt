@@ -7,6 +7,7 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -45,6 +46,9 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -57,12 +61,18 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.nullinnix.orange.Playlist
 import com.nullinnix.orange.R
+import com.nullinnix.orange.SongData
 import com.nullinnix.orange.misc.corners
+import com.nullinnix.orange.misc.durationSecondsToDays
+import com.nullinnix.orange.misc.getAnyAvailableAlbumCover
+import com.nullinnix.orange.misc.getPercentage
 import com.nullinnix.orange.misc.noGleamTaps
 import com.nullinnix.orange.misc.screenWidth
-import com.nullinnix.orange.ui.theme.Green
+import com.nullinnix.orange.song_managing.PlaylistManager
+import com.nullinnix.orange.song_managing.getSongDataFromIDs
 import com.nullinnix.orange.ui.theme.LighterGray
 import com.nullinnix.orange.ui.theme.MildGray
+import com.nullinnix.orange.ui.theme.MildTranslucentBlack
 import com.nullinnix.orange.ui.theme.NinetyTranslucentBlack
 import com.nullinnix.orange.ui.theme.Orange
 import com.nullinnix.orange.ui.theme.Red
@@ -72,7 +82,6 @@ import com.nullinnix.orange.ui.theme.TranslucentOrange
 import com.nullinnix.orange.ui.theme.TranslucentOrangeSemi
 import com.nullinnix.orange.ui.theme.Transparent
 import com.nullinnix.orange.ui.theme.White
-import com.nullinnix.orange.ui.theme.Yellow
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -87,7 +96,9 @@ fun TopAppBar(
     selectedSongs: List<String>,
     numberOfSongsInPlaylist: Int,
     isSearching: Boolean,
+    allDeviceSongs: Map<String, SongData>,
     onPlaylistChanged: (String) -> Unit,
+    playlistManager: PlaylistManager,
     onCreatePlaylist: () -> Unit,
     onDeletePlaylist: (String) -> Unit,
     onSearchParametersUpdate: (String?) -> Unit,
@@ -105,6 +116,10 @@ fun TopAppBar(
 
     var searchParameter by remember {
         mutableStateOf("")
+    }
+
+    var showDeleteDialog by remember {
+        mutableStateOf(false)
     }
 
     val playlistButtonRotationAnim by animateFloatAsState(
@@ -231,113 +246,118 @@ fun TopAppBar(
 
                     if (showingPlaylists) {
                         for (playlist in playlists.values) {
-                            Column {
-                                Spacer(modifier = Modifier.height(10.dp))
-
-                                Row(
-                                    modifier = Modifier,
-                                    verticalAlignment = Alignment.CenterVertically
+                            Box(modifier = Modifier
+                                .width(getPercentage(screenWidth(), 80).dp)
+                                .height(110.dp)
+                                .clip(corners(15.dp))
+                                .border(
+                                    color = if (currentPlaylist == playlist.id) Orange else Transparent,
+                                    width = if (currentPlaylist == playlist.id) 3.dp else 0.dp,
+                                    shape = corners(15.dp)
+                                )
+                                .clickable {
+                                    if (currentPlaylist != playlist.id) {
+                                        onPlaylistChanged(playlist.id)
+                                        showingPlaylists = false
+                                    }
+                                }
+                            ) {
+                                if (getAnyAvailableAlbumCover(
+                                        getSongDataFromIDs(
+                                            playlist.songs,
+                                            allDeviceSongs = allDeviceSongs
+                                        ).values.toList(), context = LocalContext.current
+                                    ) != null
                                 ) {
-                                    Row(modifier = Modifier
-                                        .clip(corners(5.dp))
-                                        .background(if (currentPlaylist == playlist.id) TranslucentOrangeSemi else TranslucentOrange)
-                                        .clickable {
-                                            if (currentPlaylist != playlist.id) {
-                                                onPlaylistChanged(playlist.id)
-                                                showingPlaylists = false
-                                            }
-                                        }
-                                        .padding(5.dp)
+                                    Image(
+                                        bitmap = getAnyAvailableAlbumCover(
+                                            getSongDataFromIDs(
+                                                playlist.songs,
+                                                allDeviceSongs = allDeviceSongs
+                                            ).values.toList(), context = LocalContext.current
+                                        )!!.asImageBitmap(),
+                                        contentDescription = "",
+                                        contentScale = ContentScale.Crop,
+                                        modifier = Modifier
+                                            .fillMaxSize()
+                                            .blur(100.dp)
+                                            .background(MildTranslucentBlack)
+                                    )
+                                }
+
+                                Column(
+                                    modifier = Modifier
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .background(TranslucentOrangeSemi)
+                                            .padding(5.dp),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
                                         Text(
                                             text = if (playlist.name.length > 1) playlist.name[0].uppercase() + playlist.name.substring(
                                                 1
                                             ) else playlist.name.uppercase(),
                                             fontWeight = FontWeight.ExtraBold,
-                                            color = White,
+                                            color = if(playlist.id == currentPlaylist) White else LighterGray,
                                             fontSize = 18.sp,
                                             maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
+                                            overflow = TextOverflow.Ellipsis,
+                                            modifier = Modifier
+                                                .fillMaxWidth(0.9f)
                                         )
 
-                                        if (toDelete != playlist.id) {
-                                            Spacer(modifier = Modifier.width(5.dp))
-                                            Text(
-                                                text = "${playlist.songs.size} ${if (playlist.songs.size == 1) "song" else "songs"}",
-                                                color = LighterGray,
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                        if (playlist.deletable && toDelete != playlist.id) {
+                                            Image(
+                                                imageVector = Icons.Default.Delete,
+                                                contentDescription = "",
+                                                colorFilter = ColorFilter.tint(LighterGray),
+                                                modifier = Modifier
+                                                    .clip(corners(5.dp))
+                                                    .background(Translucent)
+                                                    .clickable {
+                                                        toDelete = playlist.id
+                                                        showDeleteDialog = true
+                                                    }
                                             )
                                         }
                                     }
 
-                                    if (playlist.deletable && toDelete != playlist.id) {
-                                        Image(
-                                            imageVector = Icons.Default.Delete,
-                                            contentDescription = "",
-                                            colorFilter = ColorFilter.tint(LighterGray),
-                                            modifier = Modifier.clickable {
-                                                toDelete = playlist.id
-                                            }
+                                    if (toDelete != playlist.id) {
+                                        Spacer(modifier = Modifier.width(5.dp))
+                                        Text(
+                                            text = "Number of songs: ${playlist.songs.size} ${if (playlist.songs.size == 1) "song" else "songs"}",
+                                            color = if(playlist.id == currentPlaylist) White else LighterGray,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis,
+                                            fontWeight = FontWeight.Bold,
+                                            fontSize = 15.sp,
+                                            modifier = Modifier.padding(horizontal = 3.dp)
                                         )
                                     }
-                                }
 
-                                Spacer(modifier = Modifier.height(5.dp))
-
-                                if (playlist.deletable) {
-                                    Spacer(modifier = Modifier.width(5.dp))
-
-                                    Row(
-                                        modifier = Modifier
-                                            .clip(corners(10.dp))
-                                            .background(Translucent)
-                                            .padding(3.dp)
-                                            .animateContentSize()
-                                    ) {
-                                        if (toDelete == playlist.id) {
-                                            Row(
-                                                modifier = Modifier
-                                                    .clip(corners(10.dp))
-                                                    .background(Translucent)
-                                                    .padding(3.dp)
-                                                    .animateContentSize()
-                                                    .clickable {
-                                                        onDeletePlaylist(playlist.id)
-                                                    }
-                                            ) {
-                                                Text(
-                                                    text = "DELETE",
-                                                    color = Red,
-                                                    fontWeight = FontWeight.ExtraBold
-                                                )
-                                            }
-
-                                            Spacer(modifier = Modifier.width(7.dp))
-
-                                            Row(
-                                                modifier = Modifier
-                                                    .clip(corners(10.dp))
-                                                    .background(Translucent)
-                                                    .padding(3.dp)
-                                                    .animateContentSize()
-                                                    .clickable {
-                                                        toDelete = ""
-                                                    }
-                                            ) {
-                                                Text(
-                                                    text = "CANCEL",
-                                                    color = Green,
-                                                    fontWeight = FontWeight.ExtraBold
-                                                )
-                                            }
-                                        }
-                                    }
+                                    Text(
+                                        text = "Duration: ${
+                                            durationSecondsToDays(
+                                                playlistManager.getPlaylistDuration(
+                                                    getSongDataFromIDs(
+                                                        playlist.songs,
+                                                        allDeviceSongs = allDeviceSongs
+                                                    ).values.toList()
+                                                ).toInt() / 1000
+                                            )
+                                        }",
+                                        color = if(playlist.id == currentPlaylist) White else LighterGray,
+                                        fontWeight = FontWeight.Bold,
+                                        fontSize = 15.sp,
+                                        modifier = Modifier.padding(horizontal = 3.dp)
+                                    )
                                 }
                             }
+                            Spacer(modifier = Modifier.height(15.dp))
                         }
-
-                        Spacer(modifier = Modifier.height(15.dp))
                     }
                 }
             }
@@ -461,7 +481,10 @@ fun TopAppBar(
                 }
 
                 if (!isSearching && !isMultiSelecting) {
-                    Row (modifier = Modifier.align(Alignment.End), verticalAlignment = Alignment.CenterVertically){
+                    Row(
+                        modifier = Modifier.align(Alignment.End),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Row(
                             Modifier
                                 .clip(corners(90.dp))
@@ -517,37 +540,10 @@ fun TopAppBar(
 
 
                         //analytics
-                        Row(modifier = Modifier
-                            .clip(corners(5.dp))
-                            .background(Translucent)
-                            .clickable {
-                                onShowAnalytics()
-                            }
-                            .padding(top = 0.dp, start = 3.dp, bottom = 3.dp, end = 3.dp)
-                            .size(25.dp)
-                            .offset(4.dp),
-                            verticalAlignment = Alignment.Bottom,
-                            horizontalArrangement = Arrangement.End
-                        ) {
-                            Canvas(modifier = Modifier
-                                .height(5.dp)
-                                .width(8.dp)
-                                .background(Translucent)) {
-                                drawLine(color = Orange, start = Offset(0f, 0f), end = Offset(0f, this.size.height), strokeWidth = 15f)
-                            }
+                        Image(painter = painterResource(id = R.drawable.analytics), contentDescription = "", modifier = Modifier.clickable {
+                            onShowAnalytics()
+                        })
 
-                            Canvas(modifier = Modifier
-                                .height(12.dp)
-                                .width(8.dp)) {
-                                drawLine(color = Orange, start = Offset(0f, 0f), end = Offset(0f, this.size.height), strokeWidth = 15f)
-                            }
-
-                            Canvas(modifier = Modifier
-                                .height(18.dp)
-                                .width(8.dp)) {
-                                drawLine(color = Orange, start = Offset(0f, 0f), end = Offset(0f, this.size.height), strokeWidth = 15f)
-                            }
-                        }
 
                         Spacer(modifier = Modifier.width(5.dp))
 
@@ -565,6 +561,22 @@ fun TopAppBar(
                             colorFilter = ColorFilter.tint(Orange)
                         )
                     }
+                }
+            }
+        }
+
+        if (showDeleteDialog) {
+            Dialog(
+                text = "Delete ${playlists[toDelete]?.name}?",
+                negativeHint = "Cancel",
+                positiveHint = "Delete"
+            ) {
+                if (it) {
+                    onDeletePlaylist(toDelete)
+                    showDeleteDialog = false
+                } else {
+                    toDelete = ""
+                    showDeleteDialog = false
                 }
             }
         }
